@@ -1,0 +1,20 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Real Atlas and FluxA credentials live here.
+.env
+.env.local
+.env.*.local
+
+# Saved traveller records — passport numbers. Never commit.
+.data/
+
+# flight402 is a separate project with its own repository and remote.
+flight402/
+
+*.log
+.DS_Store
+.vscode/
