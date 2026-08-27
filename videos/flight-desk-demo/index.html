@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #16150f;
+      }
+      body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+      /* The stage ground is opaque and matches the app's own canvas, so a
+         crossfade between two scenes never dips through white. */
+      #root { background: #16150f; }
+      #endcard {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center;
+        background: #16150f; color: #efece4;
+      }
+      #endcard .line { font-size: 76px; font-weight: 640; letter-spacing: -.025em; }
+      #endcard .name {
+        font-family: ui-monospace, monospace; font-size: 26px; letter-spacing: .2em;
+        text-transform: uppercase; color: #6fc3a4; margin-bottom: 30px;
+      }
+      #endcard .foot { font-size: 28px; color: #78736a; margin-top: 34px; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="108"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div
+        id="slot-cold-open"
+        data-composition-id="cold-open"
+        data-composition-src="compositions/frames/01-cold-open.html"
+        data-start="0"
+        data-duration="8"
+        data-track-index="0"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="slot-title"
+        data-composition-id="title"
+        data-composition-src="compositions/frames/02-title.html"
+        data-start="8"
+        data-duration="7"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="slot-prompt"
+        data-composition-id="prompt"
+        data-composition-src="compositions/frames/03-prompt.html"
+        data-start="15"
+        data-duration="22"
+        data-track-index="2"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="slot-compare"
+        data-composition-id="compare"
+        data-composition-src="compositions/frames/04-compare.html"
+        data-start="37"
+        data-duration="15"
+        data-track-index="3"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="slot-draft"
+        data-composition-id="draft"
+        data-composition-src="compositions/frames/05-draft.html"
+        data-start="52"
+        data-duration="11"
+        data-track-index="4"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="slot-mandate"
+        data-composition-id="mandate"
+        data-composition-src="compositions/frames/06-mandate.html"
+        data-start="63"
+        data-duration="20"
+        data-track-index="5"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="slot-architecture"
+        data-composition-id="architecture"
+        data-composition-src="compositions/frames/07-architecture.html"
+        data-start="83"
+        data-duration="9"
+        data-track-index="6"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="slot-rails"
+        data-composition-id="rails"
+        data-composition-src="compositions/frames/08-rails.html"
+        data-start="92"
+        data-duration="8"
+        data-track-index="7"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="slot-close"
+        data-composition-id="close"
+        data-composition-src="compositions/frames/09-close.html"
+        data-start="100"
+        data-duration="8"
+        data-track-index="8"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <div id="endcard" class="clip" data-start="103.4" data-duration="4.6" data-track-index="20">
+        <div class="name" id="ec-n">Flight Desk</div>
+        <div class="line" id="ec-l">No money moved<br />without approval.</div>
+        <div class="foot" id="ec-f">Atlas sandbox &middot; settled, not charged</div>
+      </div>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      // Absolute times on the master timeline; the end card is a host-root clip,
+      // so its motion belongs here rather than in a sub-composition.
+      tl.fromTo("#ec-n", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 103.7);
+      tl.fromTo("#ec-l", { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: .7, ease: "power4.out" }, 104.0);
+      tl.fromTo("#ec-f", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 104.9);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

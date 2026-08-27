@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+.fd { position:absolute; inset:0; background:#16150f; color:#efece4;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+            overflow:hidden; }
+      .fd .mono { font-family:ui-monospace,monospace; }
+      .fd .plate { position:absolute; inset:0; width:1920px; height:1080px;
+                   object-fit:cover; }
+      .fd .veil { position:absolute; inset:0; background:#16150f; opacity:0; }
+      .fd .kicker { font-family:ui-monospace,monospace; font-size:22px;
+                    letter-spacing:.18em; text-transform:uppercase; color:#6fc3a4; }
+      .fd .lede { font-size:64px; font-weight:640; letter-spacing:-.02em;
+                  line-height:1.12; }
+      .fd .sub { font-size:30px; color:#a29d90; line-height:1.45; }
+      .fd .lower { position:absolute; left:96px; bottom:96px; max-width:1180px;
+                   padding:26px 32px; border:1px solid rgba(239,236,228,.14);
+                   background:rgba(30,29,23,.92); border-radius:10px; }
+      .fd .lower-t { font-size:34px; font-weight:600; line-height:1.25; }
+      .fd .rule { height:1px; background:rgba(239,236,228,.14); }
+      </style>
+      <div id="title" data-composition-id="title" data-width="1920" data-height="1080"
+           style="position:relative;width:1920px;height:1080px;background:#16150f">
+
+        <div class="fd" style="display:flex;flex-direction:column;justify-content:center;padding:0 140px">
+          <div class="kicker" id="t-k">Atlas hackathon</div>
+          <div class="lede" id="t-1" style="margin-top:26px;font-size:104px">Flight&nbsp;Desk</div>
+          <div class="sub" id="t-2" style="margin-top:28px;max-width:1240px;font-size:38px;color:#efece4">
+            An AI agent that books real flights &mdash;<br />and cannot spend your money.
+          </div>
+          <div class="rule" id="t-r" style="margin:44px 0 22px;width:520px"></div>
+          <div class="mono" id="t-3" style="font-size:22px;letter-spacing:.14em;color:#a29d90;text-transform:uppercase">
+            Atlas sandbox &middot; real fares &middot; real PNRs
+          </div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#t-k", { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 0.2);
+          tl.fromTo("#t-1", { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: .7, ease: "power4.out" }, 0.45);
+          tl.fromTo("#t-2", { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: .6, ease: "power3.out" }, 1.05);
+          tl.fromTo("#t-r", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: .6, ease: "power2.inOut" }, 1.7);
+          tl.fromTo("#t-3", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 2.0);
+          tl.to("#t-1,#t-2,#t-3,#t-k,#t-r", { autoAlpha: 0, duration: .45 }, 6.4);
+          window.__timelines["title"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

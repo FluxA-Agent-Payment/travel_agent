@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+.fd { position:absolute; inset:0; background:#16150f; color:#efece4;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+            overflow:hidden; }
+      .fd .mono { font-family:ui-monospace,monospace; }
+      .fd .plate-wrap { position:absolute; inset:0; overflow:hidden;
+                       /* The source is 1320x1080 (1.22:1) in a 16:9 frame.
+                          `cover` cropped 45% of the height and took the
+                          masthead with it. `contain` + this scale maps the
+                          application window itself to the full frame height,
+                          losing none of the UI; the dark margins left and
+                          right are the app's own ground, not letterbox. */
+                       transform: scale(1.227); }
+      .fd .plate { position:absolute; inset:0; width:1920px; height:1080px;
+                   object-fit:contain; background:#16150f; }
+      .fd .kicker { font-family:ui-monospace,monospace; font-size:22px;
+                    letter-spacing:.18em; text-transform:uppercase; color:#6fc3a4; }
+      .fd .lede { font-size:64px; font-weight:640; letter-spacing:-.02em; line-height:1.12; }
+      .fd .sub { font-size:30px; color:#a29d90; line-height:1.45; }
+      .fd .lower { position:absolute; left:96px; bottom:96px; max-width:1240px;
+                   padding:26px 32px; border:1px solid rgba(239,236,228,.14);
+                   background:rgba(30,29,23,.94); border-radius:10px; }
+      .fd .lower-t { font-size:34px; font-weight:600; line-height:1.28; }
+      .fd .rule { height:1px; background:rgba(239,236,228,.14); }
+      </style>
+      <div id="prompt" data-composition-id="prompt" data-width="1920" data-height="1080"
+           style="position:relative;width:1920px;height:1080px;background:#16150f">
+
+        <div class="fd">
+          <div class="plate-wrap" data-layout-allow-overflow><video id="prompt-plate" class="plate" src="assets/placeholder-run.mp4"
+                 data-start="0" data-duration="22" data-media-start="48" muted playsinline></video></div>
+          <div class="lower" id="prompt-c0" style="opacity:0">
+            <div class="kicker">The ask</div>
+            <div class="lower-t" style="margin-top:10px">&ldquo;$200, two days, somewhere to watch the sunrise &mdash; out of Hong Kong.&rdquo;</div>
+          </div>
+          <div class="lower" id="prompt-c1" style="opacity:0">
+            <div class="kicker">No route given</div>
+            <div class="lower-t" style="margin-top:10px">It chooses the destinations itself, then searches live Atlas inventory for each.</div>
+          </div>
+          <div class="lower" id="prompt-c2" style="opacity:0">
+            <div class="kicker">Capability</div>
+            <div class="lower-t" style="margin-top:10px">Searches multiple destinations from one constraint</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#prompt-c0", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 0.4);
+          tl.to("#prompt-c0", { autoAlpha: 0, duration: .35 }, 6.0);
+          tl.fromTo("#prompt-c1", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 6.5);
+          tl.to("#prompt-c1", { autoAlpha: 0, duration: .35 }, 13.0);
+          tl.fromTo("#prompt-c2", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 13.6);
+          tl.to("#prompt-c2", { autoAlpha: 0, duration: .35 }, 21.2);
+
+          window.__timelines["prompt"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

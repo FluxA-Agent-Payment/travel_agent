@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+.fd { position:absolute; inset:0; background:#16150f; color:#efece4;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+            overflow:hidden; }
+      .fd .mono { font-family:ui-monospace,monospace; }
+      .fd .plate { position:absolute; inset:0; width:1920px; height:1080px;
+                   object-fit:cover; }
+      .fd .veil { position:absolute; inset:0; background:#16150f; opacity:0; }
+      .fd .kicker { font-family:ui-monospace,monospace; font-size:22px;
+                    letter-spacing:.18em; text-transform:uppercase; color:#6fc3a4; }
+      .fd .lede { font-size:64px; font-weight:640; letter-spacing:-.02em;
+                  line-height:1.12; }
+      .fd .sub { font-size:30px; color:#a29d90; line-height:1.45; }
+      .fd .lower { position:absolute; left:96px; bottom:96px; max-width:1180px;
+                   padding:26px 32px; border:1px solid rgba(239,236,228,.14);
+                   background:rgba(30,29,23,.92); border-radius:10px; }
+      .fd .lower-t { font-size:34px; font-weight:600; line-height:1.25; }
+      .fd .rule { height:1px; background:rgba(239,236,228,.14); }
+      </style>
+      <div id="cold-open" data-composition-id="cold-open" data-width="1920" data-height="1080"
+           style="position:relative;width:1920px;height:1080px;background:#16150f">
+
+        <div class="fd">
+          <div class="plate-wrap" data-layout-allow-overflow><video id="cold-open-plate" class="plate" src="assets/placeholder-run.mp4"
+                 data-start="0" data-duration="8" data-media-start="134" muted playsinline></video></div>
+          <div class="veil" id="co-veil"></div>
+          <div class="lower" id="co-a">
+            <div class="kicker">Human approval</div>
+            <div class="lower-t" style="margin-top:10px">A human approved <span class="mono" style="color:#6fc3a4">107.06 USDC</span></div>
+          </div>
+          <div class="lower" id="co-b" style="opacity:0">
+            <div class="kicker">Result</div>
+            <div class="lower-t" style="margin-top:10px">Then a real ticket.</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#co-a", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 0.3);
+          tl.to("#co-a", { autoAlpha: 0, duration: .3 }, 4.2);
+          tl.fromTo("#co-b", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 4.5);
+          tl.to("#co-b", { autoAlpha: 0, duration: .4 }, 7.4);
+          window.__timelines["cold-open"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

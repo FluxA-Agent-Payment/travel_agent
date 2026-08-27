@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+.fd { position:absolute; inset:0; background:#16150f; color:#efece4;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+            overflow:hidden; }
+      .fd .mono { font-family:ui-monospace,monospace; }
+      .fd .kicker { font-family:ui-monospace,monospace; font-size:22px;
+                    letter-spacing:.18em; text-transform:uppercase; color:#6fc3a4; }
+      .fd .col { position:absolute; top:210px; width:700px; padding:36px 40px;
+                 border:1px solid rgba(239,236,228,.16); border-radius:12px;
+                 background:#1e1d17; }
+      .fd .col h3 { font-size:44px; font-weight:640; letter-spacing:-.015em; }
+      .fd .col li { list-style:none; font-size:29px; color:#a29d90; line-height:1.75; }
+      .fd .col li::before { content:"\2014"; color:#6fc3a4; margin-right:14px; }
+      .fd .strike { position:relative; display:inline-block; }
+      .fd .strike i { position:absolute; left:0; top:52%; height:4px; width:0;
+                      background:#6fc3a4; }
+      </style>
+      <div id="architecture" data-composition-id="architecture" data-width="1920" data-height="1080"
+           style="position:relative;width:1920px;height:1080px;background:#16150f">
+
+        <div class="fd">
+          <div class="kicker" id="ar-k" style="position:absolute;left:110px;top:120px">Who does what</div>
+
+          <div class="col" id="ar-l" style="left:110px">
+            <h3>Atlas</h3>
+            <div style="font-size:21px;color:#78736a;margin:6px 0 22px" class="mono">ATRIPTECH</div>
+            <ul style="padding:0;margin:0">
+              <li>inventory and live fares</li>
+              <li>orders, ticketing, refunds</li>
+              <li>which rails a fare accepts</li>
+            </ul>
+          </div>
+
+          <div class="col" id="ar-r" style="left:1110px">
+            <h3>FluxA</h3>
+            <div style="font-size:21px;color:#78736a;margin:6px 0 22px" class="mono">THE MONEY</div>
+            <ul style="padding:0;margin:0">
+              <li>virtual cards</li>
+              <li>the mandate a human signs</li>
+              <li>nothing spends without it</li>
+            </ul>
+          </div>
+
+          <div id="ar-b" style="position:absolute;left:110px;top:700px;width:1700px;opacity:0">
+            <div style="font-size:30px;color:#a29d90">The agent&rsquo;s tools to place, pay or refund an order:</div>
+            <div style="margin-top:18px;font-size:66px;font-weight:640;letter-spacing:-.02em">
+              <span class="strike mono" id="ar-s">place &middot; pay &middot; refund<i id="ar-line"></i></span>
+            </div>
+            <div id="ar-c" style="margin-top:22px;font-size:38px;color:#6fc3a4;font-weight:600;opacity:0">
+              Not disabled. Absent.
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#ar-k", { autoAlpha: 0 }, { autoAlpha: 1, duration: .4 }, 0.15);
+          tl.fromTo("#ar-l", { autoAlpha: 0, x: -34 }, { autoAlpha: 1, x: 0, duration: .55, ease: "power3.out" }, 0.4);
+          tl.fromTo("#ar-r", { autoAlpha: 0, x: 34 }, { autoAlpha: 1, x: 0, duration: .55, ease: "power3.out" }, 0.75);
+          tl.fromTo("#ar-b", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 2.6);
+          tl.to("#ar-line", { width: "100%", duration: .5, ease: "power2.inOut" }, 3.6);
+          tl.to("#ar-c", { autoAlpha: 1, duration: .45 }, 4.2);
+          tl.to("#ar-k,#ar-l,#ar-r,#ar-b", { autoAlpha: 0, duration: .45 }, 8.3);
+          window.__timelines["architecture"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

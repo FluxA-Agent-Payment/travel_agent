@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        .rl { position:absolute; inset:0; background:#16150f; color:#efece4;
+              font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+              padding:150px 110px 0; }
+        .rl .mono { font-family:ui-monospace,monospace; }
+        .rl .kicker { font-family:ui-monospace,monospace; font-size:22px;
+                      letter-spacing:.18em; text-transform:uppercase; color:#6fc3a4; }
+        .rl .lead { font-size:40px; color:#a29d90; line-height:1.4; max-width:1500px;
+                    margin-top:26px; }
+        /* Flow layout, fixed-width cards: the earlier absolute placement let the
+           132px numerals collide with their own labels. */
+        .rl .row { display:flex; gap:64px; margin-top:96px; }
+        .rl .stat { width:820px; padding:40px 44px; border-radius:14px;
+                    border:1px solid rgba(239,236,228,.16); background:#1e1d17; }
+        .rl .stat .lab { font-family:ui-monospace,monospace; font-size:25px;
+                         letter-spacing:.12em; color:#78736a; }
+        .rl .stat .num { font-size:124px; font-weight:640; letter-spacing:-.03em;
+                         line-height:1.15; margin-top:14px; }
+        .rl .stat .cap { font-size:28px; color:#a29d90; margin-top:6px; }
+        .rl .stat.win { border-color:#6fc3a4; background:#1b2f27; }
+        .rl .stat.win .lab { color:#6fc3a4; }
+        .rl .stat.win .num { color:#6fc3a4; }
+        .rl .foot { font-family:ui-monospace,monospace; font-size:29px;
+                    color:#78736a; margin-top:70px; }
+      </style>
+      <div id="rails" data-composition-id="rails" data-width="1920" data-height="1080"
+           style="position:relative;width:1920px;height:1080px;background:#16150f">
+        <div class="rl">
+          <div class="kicker" id="ra-k">Both of Atlas&rsquo;s settlement rails</div>
+          <div class="lead" id="ra-1">
+            Most integrations hardcode one rail, then fail on every fare that will not take it.
+          </div>
+
+          <div class="row">
+            <div class="stat" id="ra-2">
+              <div class="lab">CARD ONLY</div>
+              <div class="num">2<span style="color:#78736a">&thinsp;/&thinsp;9</span></div>
+              <div class="cap">fares bookable</div>
+            </div>
+            <div class="stat win" id="ra-3">
+              <div class="lab">CARD + DEPOSIT</div>
+              <div class="num">9<span style="opacity:.55">&thinsp;/&thinsp;9</span></div>
+              <div class="cap">fares bookable</div>
+            </div>
+          </div>
+
+          <div class="foot" id="ra-4">supportPaymentMethods, read per fare</div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#ra-k", { autoAlpha: 0 }, { autoAlpha: 1, duration: .4 }, 0.15);
+          tl.fromTo("#ra-1", { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 0.4);
+          tl.fromTo("#ra-2", { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 1.9);
+          tl.fromTo("#ra-3", { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 3.1);
+          tl.fromTo("#ra-4", { autoAlpha: 0 }, { autoAlpha: 1, duration: .4 }, 4.4);
+          tl.to("#ra-k,#ra-1,#ra-2,#ra-3,#ra-4", { autoAlpha: 0, duration: .4 }, 7.3);
+          window.__timelines["rails"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>
