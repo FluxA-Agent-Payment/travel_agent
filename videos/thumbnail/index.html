@@ -17,23 +17,22 @@
       .bloom.b2 { left:520px; top:300px; width:760px; height:520px;
                   background:radial-gradient(closest-side, rgba(150,230,60,.10), rgba(150,230,60,0) 70%); }
 
-      .mark { position:absolute; left:44px; top:36px; font-size:30px; font-weight:800;
-              font-style:italic; letter-spacing:-.02em; }
-      .mark span { font-style:normal; }
+      /* the supplied white wordmark, 649x161 (4.03:1) */
+      .mark { position:absolute; left:44px; top:34px; width:150px; height:37px; }
 
-      .copy { position:absolute; left:46px; top:168px; width:700px; }
-      .l1 { font-size:58px; font-weight:800; letter-spacing:-.03em; line-height:1.06; }
-      .l2 { font-size:58px; font-weight:800; font-style:italic; letter-spacing:-.03em;
+      .copy { position:absolute; left:46px; top:232px; width:770px; }
+      .l1 { font-size:54px; font-weight:800; letter-spacing:-.03em; line-height:1.06; }
+      .l2 { font-size:54px; font-weight:800; font-style:italic; letter-spacing:-.03em;
             line-height:1.06; color:#b6f24a; margin-top:4px; }
-      .sub { font-size:22px; color:#c9c9c4; margin-top:22px; line-height:1.4; font-weight:500; }
+      .sub { font-size:23px; color:#c9c9c4; margin-top:26px; line-height:1.4; font-weight:500; }
 
-      .chip { display:inline-flex; align-items:center; gap:9px; margin-top:30px;
+      .chip { display:inline-flex; align-items:center; gap:9px; margin-top:34px;
               background:#161616; border:1px solid #2a2a2a; border-radius:8px;
-              padding:9px 14px; font-family:ui-monospace,monospace; font-size:17px;
+              padding:10px 16px; font-family:ui-monospace,monospace; font-size:18px;
               color:#b6f24a; }
       .chip i { width:9px; height:17px; background:#b6f24a; display:inline-block; }
 
-      .term { position:absolute; right:44px; top:168px; width:470px;
+      .term { position:absolute; right:44px; top:214px; width:470px;
               background:#101210; border:1px solid #23261f; border-radius:12px;
               padding:18px 20px 20px; font-family:ui-monospace,monospace; font-size:16px;
               line-height:1.85; }
@@ -51,13 +50,12 @@
       <div class="bloom"></div>
       <div class="bloom b2"></div>
 
-      <div class="mark">Flux<span>A</span></div>
+      <img class="mark" src="assets/fluxa-logo-white.png" alt="FluxA" />
 
       <div class="copy">
-        <div class="l1">Your agent books</div>
-        <div class="l1">the flight.</div>
+        <div class="l1">Your agent books flights.</div>
         <div class="l2">You approve the spend.</div>
-        <div class="sub">Real fares on Atlas &mdash; paid from your FluxA wallet.</div>
+        <div class="sub">Real fares on Atlas, paid from your FluxA wallet.</div>
         <div class="chip">$ flight desk <i></i></div>
       </div>
 
