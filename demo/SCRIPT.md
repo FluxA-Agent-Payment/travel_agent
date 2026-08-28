@@ -42,11 +42,11 @@ Read flat and unhurried. Every claim below is one the footage proves.
 
 **[1:06 — THE SPINE]**
 
-> Now the part that matters. Most Atlas fares take no card at all, so this one
-> settles from an agency deposit — and that needs your signature.
+> Now for the actual payment. FluxA Wallet supports paying with USDC for the
+> fare, or using the wallet's own virtual credit card.
 >
-> FluxA raises a mandate for the exact amount, for this booking.
-> You approve it. Not the agent — you.
+> For USDC, FluxA raises a mandate for the exact amount, for this booking.
+> You approve the agent to spend it.
 >
 > And the agent picks the task back up on its own.
 
@@ -72,7 +72,6 @@ Read flat and unhurried. Every claim below is one the footage proves.
 | 0:44 | Holds the budget as a ceiling |
 | 0:58 | Passport never enters the agent's context |
 | 1:10 | **FluxA mandate — the agent cannot pass this** |
-| 1:20 | Deduction simulated in sandbox |
 | 1:38 | No money moved without approval |
 
 ## Say / don't say

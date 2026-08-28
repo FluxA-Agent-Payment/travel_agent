@@ -42,10 +42,6 @@
             <div class="kicker">FluxA mandate</div>
             <div class="lower-t" style="margin-top:10px">The agent cannot pass this.</div>
           </div>
-          <div class="lower" id="mandate-c2" style="opacity:0">
-            <div class="kicker">Sandbox</div>
-            <div class="lower-t" style="margin-top:10px">Deduction simulated &mdash; no money moves.</div>
-          </div>
           <div class="lower" id="mandate-c3" style="opacity:0">
             <div class="kicker">Resumed</div>
             <div class="lower-t" style="margin-top:10px">The agent picks the task back up on its own.</div>
@@ -59,10 +55,8 @@
           tl.to("#mandate-c0", { autoAlpha: 0, duration: .35 }, 5.0);
           tl.fromTo("#mandate-c1", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 5.5);
           tl.to("#mandate-c1", { autoAlpha: 0, duration: .35 }, 11.5);
-          tl.fromTo("#mandate-c2", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 12.0);
-          tl.to("#mandate-c2", { autoAlpha: 0, duration: .35 }, 15.5);
-          tl.fromTo("#mandate-c3", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 16.0);
-          tl.to("#mandate-c3", { autoAlpha: 0, duration: .35 }, 19.4);
+          tl.fromTo("#mandate-c3", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 18.6);
+          tl.to("#mandate-c3", { autoAlpha: 0, duration: .35 }, 22.4);
 
           window.__timelines["mandate"] = tl;
         })();

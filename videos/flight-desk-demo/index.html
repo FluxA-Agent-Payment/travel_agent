@@ -32,7 +32,7 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="111"
+      data-duration="114"
       data-width="1920"
       data-height="1080"
     >
@@ -91,7 +91,7 @@
         data-composition-id="mandate"
         data-composition-src="compositions/frames/06-mandate.html"
         data-start="64"
-        data-duration="20"
+        data-duration="23"
         data-track-index="5"
         data-width="1920"
         data-height="1080"
@@ -100,7 +100,7 @@
         id="slot-architecture"
         data-composition-id="architecture"
         data-composition-src="compositions/frames/07-architecture.html"
-        data-start="84"
+        data-start="87"
         data-duration="11"
         data-track-index="6"
         data-width="1920"
@@ -110,7 +110,7 @@
         id="slot-rails"
         data-composition-id="rails"
         data-composition-src="compositions/frames/08-rails.html"
-        data-start="95"
+        data-start="98"
         data-duration="8"
         data-track-index="7"
         data-width="1920"
@@ -120,7 +120,7 @@
         id="slot-close"
         data-composition-id="close"
         data-composition-src="compositions/frames/09-close.html"
-        data-start="103"
+        data-start="106"
         data-duration="8"
         data-track-index="8"
         data-width="1920"
@@ -172,29 +172,28 @@
       <audio
         id="vo-07"
         src="assets/vo/07.wav"
-        data-start="84.25"
+        data-start="87.25"
         data-track-index="36"
         data-volume="1"
       ></audio>
       <audio
         id="vo-08"
         src="assets/vo/08.wav"
-        data-start="95.25"
+        data-start="98.25"
         data-track-index="37"
         data-volume="1"
       ></audio>
       <audio
         id="vo-09"
         src="assets/vo/09.wav"
-        data-start="103.25"
+        data-start="106.25"
         data-track-index="38"
         data-volume="1"
       ></audio>
 
-      <div id="endcard" class="clip" data-start="106.4" data-duration="4.6" data-track-index="20">
+      <div id="endcard" class="clip" data-start="109.4" data-duration="4.6" data-track-index="20">
         <div class="name" id="ec-n">Flight Desk</div>
-        <div class="line" id="ec-l">No money moved<br />without approval.</div>
-        <div class="foot" id="ec-f">Atlas sandbox &middot; settled, not charged</div>
+        <div class="line" id="ec-l">Autonomous booking,<br />from schedule to ticket.</div>
       </div>
     </div>
 
@@ -202,9 +201,8 @@
       const tl = gsap.timeline({ paused: true });
       // Absolute times on the master timeline; the end card is a host-root clip,
       // so its motion belongs here rather than in a sub-composition.
-      tl.fromTo("#ec-n", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 106.7);
-      tl.fromTo("#ec-l", { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: .7, ease: "power4.out" }, 107.0);
-      tl.fromTo("#ec-f", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 107.9);
+      tl.fromTo("#ec-n", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 109.7);
+      tl.fromTo("#ec-l", { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: .7, ease: "power4.out" }, 110.0);
       window.__timelines["main"] = tl;
     </script>
   </body>
