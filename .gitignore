@@ -24,7 +24,6 @@ videos/*/renders/
 videos/*/assets/*.mp4
 videos/*/capture/assets/*.mp4
 demo/footage/
-demo/*.mp4
 
 # Vendored agent skills — installed with `npx skills add heygen-com/hyperframes`,
 # reinstallable, and full of binary font/media assets.

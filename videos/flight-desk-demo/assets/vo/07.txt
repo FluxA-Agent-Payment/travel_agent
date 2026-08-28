@@ -1,1 +1,1 @@
-Atlas provides the inventory, the fares, and the ticketing. FluxA holds the money. The agent has no tool to place, pay, or refund. Not disabled. Absent.
+Atlas provides the inventory, the fares, and the ticketing. The agent uses your FluxA wallet to place and pay for an order, under your approval.

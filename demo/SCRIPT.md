@@ -53,8 +53,8 @@ Read flat and unhurried. Every claim below is one the footage proves.
 **[1:26 — architecture]**
 
 > Atlas provides the inventory, the fares and the ticketing.
-> FluxA holds the money.
-> The agent has no tool to place, pay or refund. Not disabled — absent.
+> The agent uses your FluxA wallet to place and pay for an order —
+> under your approval.
 
 **[1:34 — close]**
 

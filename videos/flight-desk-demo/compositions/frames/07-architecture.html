@@ -16,9 +16,10 @@
       .fd .col h3 { font-size:44px; font-weight:640; letter-spacing:-.015em; }
       .fd .col li { list-style:none; font-size:29px; color:#a29d90; line-height:1.75; }
       .fd .col li::before { content:"\2014"; color:#6fc3a4; margin-right:14px; }
-      .fd .strike { position:relative; display:inline-block; }
-      .fd .strike i { position:absolute; left:0; top:52%; height:4px; width:0;
-                      background:#6fc3a4; }
+      .fd .flowbox { padding:20px 26px; border-radius:12px; border:1px solid rgba(239,236,228,.18);
+                     background:#1e1d17; font-size:30px; font-weight:600; white-space:nowrap; }
+      .fd .flowbox.win { border-color:#6fc3a4; background:#1b2f27; color:#6fc3a4; }
+      .fd .arrow { font-size:34px; color:#78736a; }
       </style>
       <div id="architecture" data-composition-id="architecture" data-width="1920" data-height="1080"
            style="position:relative;width:1920px;height:1080px;background:#16150f">
@@ -46,13 +47,16 @@
             </ul>
           </div>
 
-          <div id="ar-b" style="position:absolute;left:110px;top:700px;width:1700px;opacity:0">
-            <div style="font-size:30px;color:#a29d90">The agent&rsquo;s tools to place, pay or refund an order:</div>
-            <div style="margin-top:18px;font-size:66px;font-weight:640;letter-spacing:-.02em">
-              <span class="strike mono" id="ar-s">place &middot; pay &middot; refund<i id="ar-line"></i></span>
-            </div>
-            <div id="ar-c" style="margin-top:22px;font-size:38px;color:#6fc3a4;font-weight:600;opacity:0">
-              Not disabled. Absent.
+          <div id="ar-b" style="position:absolute;left:110px;top:690px;width:1700px;opacity:0">
+            <div style="font-size:30px;color:#a29d90">How a booking gets paid</div>
+            <div style="display:flex;align-items:center;gap:26px;margin-top:24px">
+              <div class="flowbox" id="fl1">The agent</div>
+              <div class="arrow" id="fa1">&rarr;</div>
+              <div class="flowbox" id="fl2">Your FluxA wallet</div>
+              <div class="arrow" id="fa2">&rarr;</div>
+              <div class="flowbox win" id="fl3">You approve</div>
+              <div class="arrow" id="fa3">&rarr;</div>
+              <div class="flowbox win" id="fl4">Ticket issued</div>
             </div>
           </div>
         </div>
@@ -64,8 +68,9 @@
           tl.fromTo("#ar-l", { autoAlpha: 0, x: -34 }, { autoAlpha: 1, x: 0, duration: .55, ease: "power3.out" }, 0.4);
           tl.fromTo("#ar-r", { autoAlpha: 0, x: 34 }, { autoAlpha: 1, x: 0, duration: .55, ease: "power3.out" }, 0.75);
           tl.fromTo("#ar-b", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: .5, ease: "power3.out" }, 2.6);
-          tl.to("#ar-line", { width: "100%", duration: .5, ease: "power2.inOut" }, 3.6);
-          tl.to("#ar-c", { autoAlpha: 1, duration: .45 }, 4.2);
+          ["#fl1","#fa1","#fl2","#fa2","#fl3","#fa3","#fl4"].forEach(function (sel, i) {
+            tl.fromTo(sel, { autoAlpha: 0, x: -14 }, { autoAlpha: 1, x: 0, duration: .3, ease: "power3.out" }, 3.2 + i * 0.34);
+          });
           tl.to("#ar-k,#ar-l,#ar-r,#ar-b", { autoAlpha: 0, duration: .45 }, 8.3);
           window.__timelines["architecture"] = tl;
         })();
