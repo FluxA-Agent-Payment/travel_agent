@@ -40,10 +40,22 @@ flight. That last one is the frame the whole video rests on, and it now reads
 
 ## Audio
 
-The cut is silent by design: not signed in to HeyGen, and local voice/music
-engines need multi-GB installs. Record the voiceover from `demo/SCRIPT.md` and
-lay it over the render, or sign in (`npx hyperframes auth login`) and I will
-generate narration and BGM into the timeline properly.
+Narrated with Kokoro (local, offline) in voice `bm_george`. Nine clips, one per
+scene, in `assets/vo/`, each normalised to -16 LUFS; the finished mix measures
+-13.2 LUFS integrated against the old recording's -29.1.
 
-Normalise the voiceover to about **-16 LUFS**. The previous cut measured
-**-29.1 LUFS integrated**, which is why it sounded almost silent.
+The narration lives on tracks 30–38, one per scene, keyed to the scene it
+belongs to. To re-record a line: edit `assets/vo/NN.txt`, then
+
+```bash
+export HYPERFRAMES_PYTHON=<repo>/.venv-tts/bin/python
+npx hyperframes tts "assets/vo/NN.txt" -o "assets/vo/NN.wav" --voice bm_george
+ffmpeg -y -i assets/vo/NN.wav -af loudnorm=I=-16:TP=-1.5:LRA=11 -ar 48000 tmp.wav && mv tmp.wav assets/vo/NN.wav
+```
+
+Keep each clip inside its slot — scene 02 and scene 07 were widened by 1s and
+2s because the take ran long. If a rewrite overruns, widen the slot in
+`index.html` rather than rushing the read.
+
+Prefer your own voice? Record from `demo/SCRIPT.md` at about -16 LUFS and
+replace the wavs; the timings stay put.

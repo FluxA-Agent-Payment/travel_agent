@@ -1,0 +1,1 @@
+Flight Desk is an AI agent that books flights based on your schedule, and pays under your permission.

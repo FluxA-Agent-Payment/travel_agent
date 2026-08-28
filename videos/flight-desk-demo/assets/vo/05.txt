@@ -1,0 +1,1 @@
+Passenger details are already on file, so it fills them in. The passport number never enters the agent's context. It prepares the booking. And it stops there.

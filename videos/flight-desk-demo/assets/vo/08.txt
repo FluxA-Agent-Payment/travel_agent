@@ -1,0 +1,1 @@
+It reads which rails each fare accepts. That is the difference between booking two of nine, and all nine.

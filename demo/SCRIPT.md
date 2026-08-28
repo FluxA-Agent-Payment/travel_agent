@@ -11,8 +11,8 @@ Read flat and unhurried. Every claim below is one the footage proves.
 
 **[0:08 — title]**
 
-> Flight Desk is an AI agent that searches, compares and prepares real flight
-> bookings on Atlas. It cannot spend your money — and that is the point.
+> Flight Desk is an AI agent that books flights based on your schedule — and
+> pays under your permission.
 
 **[0:16 — the mystery box]**
 

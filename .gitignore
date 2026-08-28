@@ -30,3 +30,5 @@ demo/*.mp4
 # reinstallable, and full of binary font/media assets.
 .agents/
 .claude/skills/
+.venv-tts/
+videos/*/assets/vo/*.wav

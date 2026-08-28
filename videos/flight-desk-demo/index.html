@@ -32,7 +32,7 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="108"
+      data-duration="111"
       data-width="1920"
       data-height="1080"
     >
@@ -51,7 +51,7 @@
         data-composition-id="title"
         data-composition-src="compositions/frames/02-title.html"
         data-start="8"
-        data-duration="7"
+        data-duration="8"
         data-track-index="1"
         data-width="1920"
         data-height="1080"
@@ -60,7 +60,7 @@
         id="slot-prompt"
         data-composition-id="prompt"
         data-composition-src="compositions/frames/03-prompt.html"
-        data-start="15"
+        data-start="16"
         data-duration="22"
         data-track-index="2"
         data-width="1920"
@@ -70,7 +70,7 @@
         id="slot-compare"
         data-composition-id="compare"
         data-composition-src="compositions/frames/04-compare.html"
-        data-start="37"
+        data-start="38"
         data-duration="15"
         data-track-index="3"
         data-width="1920"
@@ -80,7 +80,7 @@
         id="slot-draft"
         data-composition-id="draft"
         data-composition-src="compositions/frames/05-draft.html"
-        data-start="52"
+        data-start="53"
         data-duration="11"
         data-track-index="4"
         data-width="1920"
@@ -90,7 +90,7 @@
         id="slot-mandate"
         data-composition-id="mandate"
         data-composition-src="compositions/frames/06-mandate.html"
-        data-start="63"
+        data-start="64"
         data-duration="20"
         data-track-index="5"
         data-width="1920"
@@ -100,8 +100,8 @@
         id="slot-architecture"
         data-composition-id="architecture"
         data-composition-src="compositions/frames/07-architecture.html"
-        data-start="83"
-        data-duration="9"
+        data-start="84"
+        data-duration="11"
         data-track-index="6"
         data-width="1920"
         data-height="1080"
@@ -110,7 +110,7 @@
         id="slot-rails"
         data-composition-id="rails"
         data-composition-src="compositions/frames/08-rails.html"
-        data-start="92"
+        data-start="95"
         data-duration="8"
         data-track-index="7"
         data-width="1920"
@@ -120,14 +120,78 @@
         id="slot-close"
         data-composition-id="close"
         data-composition-src="compositions/frames/09-close.html"
-        data-start="100"
+        data-start="103"
         data-duration="8"
         data-track-index="8"
         data-width="1920"
         data-height="1080"
       ></div>
 
-      <div id="endcard" class="clip" data-start="103.4" data-duration="4.6" data-track-index="20">
+      <audio
+        id="vo-01"
+        src="assets/vo/01.wav"
+        data-start="0.25"
+        data-track-index="30"
+        data-volume="1"
+      ></audio>
+      <audio
+        id="vo-02"
+        src="assets/vo/02.wav"
+        data-start="8.25"
+        data-track-index="31"
+        data-volume="1"
+      ></audio>
+      <audio
+        id="vo-03"
+        src="assets/vo/03.wav"
+        data-start="16.25"
+        data-track-index="32"
+        data-volume="1"
+      ></audio>
+      <audio
+        id="vo-04"
+        src="assets/vo/04.wav"
+        data-start="38.25"
+        data-track-index="33"
+        data-volume="1"
+      ></audio>
+      <audio
+        id="vo-05"
+        src="assets/vo/05.wav"
+        data-start="53.25"
+        data-track-index="34"
+        data-volume="1"
+      ></audio>
+      <audio
+        id="vo-06"
+        src="assets/vo/06.wav"
+        data-start="64.25"
+        data-track-index="35"
+        data-volume="1"
+      ></audio>
+      <audio
+        id="vo-07"
+        src="assets/vo/07.wav"
+        data-start="84.25"
+        data-track-index="36"
+        data-volume="1"
+      ></audio>
+      <audio
+        id="vo-08"
+        src="assets/vo/08.wav"
+        data-start="95.25"
+        data-track-index="37"
+        data-volume="1"
+      ></audio>
+      <audio
+        id="vo-09"
+        src="assets/vo/09.wav"
+        data-start="103.25"
+        data-track-index="38"
+        data-volume="1"
+      ></audio>
+
+      <div id="endcard" class="clip" data-start="106.4" data-duration="4.6" data-track-index="20">
         <div class="name" id="ec-n">Flight Desk</div>
         <div class="line" id="ec-l">No money moved<br />without approval.</div>
         <div class="foot" id="ec-f">Atlas sandbox &middot; settled, not charged</div>
@@ -138,9 +202,9 @@
       const tl = gsap.timeline({ paused: true });
       // Absolute times on the master timeline; the end card is a host-root clip,
       // so its motion belongs here rather than in a sub-composition.
-      tl.fromTo("#ec-n", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 103.7);
-      tl.fromTo("#ec-l", { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: .7, ease: "power4.out" }, 104.0);
-      tl.fromTo("#ec-f", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 104.9);
+      tl.fromTo("#ec-n", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 106.7);
+      tl.fromTo("#ec-l", { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: .7, ease: "power4.out" }, 107.0);
+      tl.fromTo("#ec-f", { autoAlpha: 0 }, { autoAlpha: 1, duration: .5 }, 107.9);
       window.__timelines["main"] = tl;
     </script>
   </body>
