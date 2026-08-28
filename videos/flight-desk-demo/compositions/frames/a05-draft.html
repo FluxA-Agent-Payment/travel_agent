@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+      .ap { position:absolute; inset:0; background:#16150f; color:#efece4;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; }
+      .ap .mono { font-family:ui-monospace,monospace; }
+      .ap .mast { display:flex; align-items:baseline; gap:18px; padding:34px 60px 24px;
+                  border-bottom:1px solid #35332a; }
+      .ap .mast h1 { font-size:26px; font-weight:620; letter-spacing:-.01em; }
+      .ap .mast .sub { font-size:19px; color:#9c968c; }
+      .ap .chip { margin-left:auto; font-family:ui-monospace,monospace; font-size:16px;
+                  letter-spacing:.06em; text-transform:uppercase; color:#a29d90;
+                  border:1px solid #35332a; border-radius:999px; padding:6px 16px; }
+      .ap .split { display:grid; grid-template-columns:640px 1px 1fr; height:calc(1080px - 92px); }
+      .ap .rail { padding:34px 40px; overflow:hidden; }
+      .ap .vr { background:#35332a; }
+      .ap .pane { padding:28px 44px; overflow:hidden; position:relative; }
+
+      .ap .bubble { background:#6fc3a4; color:#10201a; padding:16px 22px; border-radius:12px;
+                    font-size:22px; line-height:1.45; margin-left:auto; max-width:520px; }
+      .ap .say { font-size:22px; line-height:1.55; margin-top:26px; color:#efece4; }
+      .ap .say b { color:#efece4; font-weight:640; }
+      .ap .trace { font-family:ui-monospace,monospace; font-size:17px; color:#9c968c; margin-top:18px; }
+
+      .ap .fc { border:1px solid #35332a; border-radius:14px; background:#1e1d17;
+                padding:22px 26px; margin-bottom:16px; }
+      .ap .fc-top { display:flex; align-items:center; gap:14px; }
+      .ap .fc-mark { width:40px; height:40px; border-radius:9px; background:#252419;
+                     display:grid; place-items:center; font-size:17px; font-weight:700;
+                     font-family:ui-monospace,monospace; color:#efece4; }
+      .ap .fc-no { font-family:ui-monospace,monospace; font-size:17px; color:#9c968c; }
+      .ap .fc-price { margin-left:auto; font-size:34px; font-weight:640; letter-spacing:-.02em; }
+      .ap .fc-price small { font-size:16px; color:#9c968c; font-weight:400; margin-left:6px; }
+      .ap .fc-row { display:flex; align-items:baseline; gap:22px; margin-top:16px; }
+      .ap .fc-od { font-size:17px; color:#a29d90; font-family:ui-monospace,monospace; }
+      .ap .fc-t { font-size:30px; font-weight:600; letter-spacing:-.01em; }
+      .ap .fc-line { flex:1; height:1px; background:#35332a; margin:0 6px; position:relative; top:-6px; }
+      .ap .tags { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+      .ap .pill { font-family:ui-monospace,monospace; font-size:15px; padding:5px 12px;
+                  border-radius:999px; border:1px solid #35332a; color:#a29d90; }
+      .ap .pill.ok { border-color:#6fc3a4; color:#6fc3a4; }
+      .ap .pill.warn { border-color:#d9a94f; color:#d9a94f; }
+
+      .ap .card { border:1px solid #35332a; border-radius:14px; background:#1e1d17; overflow:hidden; }
+      .ap .card-h { display:flex; justify-content:space-between; align-items:center;
+                    padding:16px 24px; background:#252419; border-bottom:1px solid #35332a;
+                    font-family:ui-monospace,monospace; font-size:16px; letter-spacing:.05em;
+                    text-transform:uppercase; color:#a29d90; }
+      .ap .card-b { padding:24px; }
+      .ap .kv { display:flex; justify-content:space-between; font-size:21px; padding:9px 0; }
+      .ap .kv .k { color:#a29d90; }
+      .ap .kv.total { font-size:26px; font-weight:640; border-top:1px solid #35332a;
+                      margin-top:10px; padding-top:16px; }
+      .ap .btn { display:inline-block; background:#6fc3a4; color:#10201a; font-weight:640;
+                 font-size:22px; padding:15px 26px; border-radius:10px; }
+      .ap .note { font-size:18px; color:#9c968c; line-height:1.5; margin-top:14px; }
+
+      .ap .step { display:flex; gap:16px; padding:13px 0; }
+      .ap .step-m { width:30px; height:30px; border-radius:50%; border:1.5px solid #4a4739;
+                    display:grid; place-items:center; font-family:ui-monospace,monospace;
+                    font-size:15px; color:#9c968c; flex:none; }
+      .ap .step.on .step-m { border-color:#6fc3a4; color:#6fc3a4; }
+      .ap .step.done .step-m { border-color:#6fc3a4; color:#6fc3a4; }
+      .ap .step-t { font-size:21px; color:#a29d90; }
+      .ap .step.on .step-t { color:#efece4; font-weight:620; }
+      .ap .outcome { display:flex; gap:16px; align-items:flex-start; margin-top:18px;
+                     padding:20px 22px; border-radius:12px; border:1px solid #6fc3a4;
+                     background:#1b2f27; }
+      .ap .outcome-m { width:36px; height:36px; border-radius:50%; border:2px solid #6fc3a4;
+                       display:grid; place-items:center; color:#6fc3a4; font-size:19px; flex:none; }
+      .ap .outcome-t { font-size:26px; font-weight:640; }
+      .ap .outcome-s { font-size:20px; color:#a29d90; margin-top:4px; }
+      .ap .outcome-s b { font-family:ui-monospace,monospace; color:#efece4; }
+</style>
+      <div id="draft" data-composition-id="draft" data-width="1920" data-height="1080"
+           style="position:relative;width:1920px;height:1080px;background:#16150f">
+        <div class="ap">
+          <div class="mast">
+            <h1>FluxA Flight Desk</h1><span class="sub">search &middot; price &middot; book &middot; manage</span>
+            <span class="chip">ATLAS SANDBOX</span>
+          </div>
+          <div class="split">
+            <div class="rail">
+              <div class="trace" id="t1" style="opacity:0">Checking saved travellers &#10003;</div>
+              <div class="say" id="d1" style="opacity:0">Ada is already on file &mdash; passport and contact filled in.</div>
+              <div class="say" id="d2" style="opacity:0;margin-top:16px;color:#a29d90">The passport number never reaches me. The server adds it on the way to the airline.</div>
+              <div class="say" id="d3" style="opacity:0;margin-top:22px"><b>Ready for your approval.</b></div>
+            </div>
+            <div class="vr"></div>
+            <div class="pane">
+              <div class="card" id="draft" style="opacity:0">
+                <div class="card-h"><span>Ready for your approval</span><span style="color:#d9a94f">NOT BOOKED YET</span></div>
+                <div class="card-b">
+                  <div style="display:flex;align-items:baseline;gap:20px">
+                    <div><div class="fc-od">HKG</div><div class="fc-t">6:40 PM</div></div>
+                    <div class="fc-line"></div>
+                    <div class="fc-od">1h 50m &middot; nonstop</div>
+                    <div class="fc-line"></div>
+                    <div style="text-align:right"><div class="fc-od">TPE</div><div class="fc-t">8:30 PM</div></div>
+                  </div>
+                  <div style="margin-top:22px;font-size:20px;color:#a29d90" id="pax" style="opacity:0">
+                    Ada Lovelace &middot; adult &middot; 1979-12-10<br />ada@example.com &middot; +6591234599
+                  </div>
+                  <div class="kv" style="margin-top:18px"><span class="k">Fare (1 passenger)</span><span>127.44 USDC</span></div>
+                  <div class="kv total"><span>Total</span><span>127.44 USDC</span></div>
+                  <div style="margin-top:22px"><span class="btn" id="apv">Approve and book &middot; 127.44 USDC</span></div>
+                  <div class="note" id="gate" style="opacity:0">The agent cannot place this booking or move money. It happens only when you click.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#t1",{autoAlpha:0},{autoAlpha:1,duration:.3},0.2);
+          tl.fromTo("#d1",{autoAlpha:0,y:14},{autoAlpha:1,y:0,duration:.45,ease:"power3.out"},0.9);
+          tl.fromTo("#draft",{autoAlpha:0,y:26},{autoAlpha:1,y:0,duration:.55,ease:"power3.out"},1.4);
+          tl.fromTo("#pax",{autoAlpha:0},{autoAlpha:1,duration:.5},2.6);
+          tl.fromTo("#d2",{autoAlpha:0,y:14},{autoAlpha:1,y:0,duration:.45,ease:"power3.out"},4.2);
+          tl.fromTo("#gate",{autoAlpha:0},{autoAlpha:1,duration:.45},6.6);
+          tl.fromTo("#d3",{autoAlpha:0,y:14},{autoAlpha:1,y:0,duration:.45,ease:"power3.out"},7.6);
+          tl.to("#apv",{scale:1.04,transformOrigin:"left center",duration:.35,yoyo:true,repeat:1,ease:"power2.inOut"},8.4);
+          window.__timelines["draft"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

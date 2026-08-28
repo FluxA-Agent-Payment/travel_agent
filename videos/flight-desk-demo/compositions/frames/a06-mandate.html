@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+      .ap { position:absolute; inset:0; background:#16150f; color:#efece4;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; }
+      .ap .mono { font-family:ui-monospace,monospace; }
+      .ap .mast { display:flex; align-items:baseline; gap:18px; padding:34px 60px 24px;
+                  border-bottom:1px solid #35332a; }
+      .ap .mast h1 { font-size:26px; font-weight:620; letter-spacing:-.01em; }
+      .ap .mast .sub { font-size:19px; color:#9c968c; }
+      .ap .chip { margin-left:auto; font-family:ui-monospace,monospace; font-size:16px;
+                  letter-spacing:.06em; text-transform:uppercase; color:#a29d90;
+                  border:1px solid #35332a; border-radius:999px; padding:6px 16px; }
+      .ap .split { display:grid; grid-template-columns:640px 1px 1fr; height:calc(1080px - 92px); }
+      .ap .rail { padding:34px 40px; overflow:hidden; }
+      .ap .vr { background:#35332a; }
+      .ap .pane { padding:28px 44px; overflow:hidden; position:relative; }
+
+      .ap .bubble { background:#6fc3a4; color:#10201a; padding:16px 22px; border-radius:12px;
+                    font-size:22px; line-height:1.45; margin-left:auto; max-width:520px; }
+      .ap .say { font-size:22px; line-height:1.55; margin-top:26px; color:#efece4; }
+      .ap .say b { color:#efece4; font-weight:640; }
+      .ap .trace { font-family:ui-monospace,monospace; font-size:17px; color:#9c968c; margin-top:18px; }
+
+      .ap .fc { border:1px solid #35332a; border-radius:14px; background:#1e1d17;
+                padding:22px 26px; margin-bottom:16px; }
+      .ap .fc-top { display:flex; align-items:center; gap:14px; }
+      .ap .fc-mark { width:40px; height:40px; border-radius:9px; background:#252419;
+                     display:grid; place-items:center; font-size:17px; font-weight:700;
+                     font-family:ui-monospace,monospace; color:#efece4; }
+      .ap .fc-no { font-family:ui-monospace,monospace; font-size:17px; color:#9c968c; }
+      .ap .fc-price { margin-left:auto; font-size:34px; font-weight:640; letter-spacing:-.02em; }
+      .ap .fc-price small { font-size:16px; color:#9c968c; font-weight:400; margin-left:6px; }
+      .ap .fc-row { display:flex; align-items:baseline; gap:22px; margin-top:16px; }
+      .ap .fc-od { font-size:17px; color:#a29d90; font-family:ui-monospace,monospace; }
+      .ap .fc-t { font-size:30px; font-weight:600; letter-spacing:-.01em; }
+      .ap .fc-line { flex:1; height:1px; background:#35332a; margin:0 6px; position:relative; top:-6px; }
+      .ap .tags { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+      .ap .pill { font-family:ui-monospace,monospace; font-size:15px; padding:5px 12px;
+                  border-radius:999px; border:1px solid #35332a; color:#a29d90; }
+      .ap .pill.ok { border-color:#6fc3a4; color:#6fc3a4; }
+      .ap .pill.warn { border-color:#d9a94f; color:#d9a94f; }
+
+      .ap .card { border:1px solid #35332a; border-radius:14px; background:#1e1d17; overflow:hidden; }
+      .ap .card-h { display:flex; justify-content:space-between; align-items:center;
+                    padding:16px 24px; background:#252419; border-bottom:1px solid #35332a;
+                    font-family:ui-monospace,monospace; font-size:16px; letter-spacing:.05em;
+                    text-transform:uppercase; color:#a29d90; }
+      .ap .card-b { padding:24px; }
+      .ap .kv { display:flex; justify-content:space-between; font-size:21px; padding:9px 0; }
+      .ap .kv .k { color:#a29d90; }
+      .ap .kv.total { font-size:26px; font-weight:640; border-top:1px solid #35332a;
+                      margin-top:10px; padding-top:16px; }
+      .ap .btn { display:inline-block; background:#6fc3a4; color:#10201a; font-weight:640;
+                 font-size:22px; padding:15px 26px; border-radius:10px; }
+      .ap .note { font-size:18px; color:#9c968c; line-height:1.5; margin-top:14px; }
+
+      .ap .step { display:flex; gap:16px; padding:13px 0; }
+      .ap .step-m { width:30px; height:30px; border-radius:50%; border:1.5px solid #4a4739;
+                    display:grid; place-items:center; font-family:ui-monospace,monospace;
+                    font-size:15px; color:#9c968c; flex:none; }
+      .ap .step.on .step-m { border-color:#6fc3a4; color:#6fc3a4; }
+      .ap .step.done .step-m { border-color:#6fc3a4; color:#6fc3a4; }
+      .ap .step-t { font-size:21px; color:#a29d90; }
+      .ap .step.on .step-t { color:#efece4; font-weight:620; }
+      .ap .outcome { display:flex; gap:16px; align-items:flex-start; margin-top:18px;
+                     padding:20px 22px; border-radius:12px; border:1px solid #6fc3a4;
+                     background:#1b2f27; }
+      .ap .outcome-m { width:36px; height:36px; border-radius:50%; border:2px solid #6fc3a4;
+                       display:grid; place-items:center; color:#6fc3a4; font-size:19px; flex:none; }
+      .ap .outcome-t { font-size:26px; font-weight:640; }
+      .ap .outcome-s { font-size:20px; color:#a29d90; margin-top:4px; }
+      .ap .outcome-s b { font-family:ui-monospace,monospace; color:#efece4; }
+</style>
+      <div id="mandate" data-composition-id="mandate" data-width="1920" data-height="1080"
+           style="position:relative;width:1920px;height:1080px;background:#16150f">
+        <div class="ap">
+          <div class="mast">
+            <h1>FluxA Flight Desk</h1><span class="sub">search &middot; price &middot; book &middot; manage</span>
+            <span class="chip">ATLAS SANDBOX</span>
+          </div>
+          <div class="split">
+            <div class="rail">
+              <div class="say" id="p1" style="opacity:0">Two ways to pay this fare.</div>
+              <div class="say" id="p2" style="opacity:0;margin-top:16px;color:#a29d90">USDC from your FluxA wallet, or the wallet&rsquo;s own virtual card.</div>
+              <div class="say" id="p3" style="opacity:0;margin-top:26px">FluxA raises a mandate for <b>127.44</b> &mdash; for this booking only.</div>
+              <div class="say" id="p4" style="opacity:0;margin-top:20px"><b>You approve it. Not me.</b></div>
+            </div>
+            <div class="vr"></div>
+            <div class="pane">
+              <div class="card" id="pay" style="opacity:0">
+                <div class="card-h"><span>PNR UO7K2M</span><span style="color:#d9a94f">PENDING PAYMENT</span></div>
+                <div class="card-b">
+                  <div class="kv total" style="border:0;margin:0;padding:0 0 18px"><span>Total</span><span>127.44 USDC</span></div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="rails" style="opacity:0">
+                    <div style="padding:18px 20px;border-radius:12px;border:1px solid #6fc3a4;background:#1b2f27" id="r1">
+                      <div style="font-size:21px;font-weight:620">Pay with USDC</div>
+                      <div style="font-size:17px;color:#a29d90;margin-top:4px">From your FluxA wallet</div>
+                    </div>
+                    <div style="padding:18px 20px;border-radius:12px;border:1px solid #35332a;background:#252419" id="r2">
+                      <div style="font-size:21px;font-weight:620">FluxA virtual card</div>
+                      <div style="font-size:17px;color:#a29d90;margin-top:4px">&bull;&bull;&bull;&bull; 9608</div>
+                    </div>
+                  </div>
+                  <div style="margin-top:22px" id="tracker" style="opacity:0">
+                  <div class="step" id="sA"><div class="step-m">1</div><div class="step-t">Request a mandate</div></div>
+                  <div class="step" id="sB"><div class="step-m">2</div><div class="step-t">You sign it in FluxA</div></div>
+                  <div class="step" id="sC"><div class="step-m">3</div><div class="step-t">Settled with the airline</div></div>
+                  <div class="step" id="sD"><div class="step-m">4</div><div class="step-t">Ticketing</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="fluxa" style="opacity:0;position:absolute;left:44px;right:44px;top:150px;
+                   background:#ffffff;color:#141413;border-radius:16px;padding:44px 48px;
+                   box-shadow:0 30px 80px rgba(0,0,0,.55)">
+                <div style="font-family:ui-monospace,monospace;font-size:20px;letter-spacing:.1em;color:#6b6b68">FLUXA</div>
+                <div style="font-size:30px;font-weight:640;margin-top:26px">Approve this payment</div>
+                <div style="display:flex;justify-content:space-between;font-size:22px;margin-top:26px;padding-top:20px;border-top:1px solid #e6e4df">
+                  <span style="color:#6b6b68">Amount</span><b style="font-size:34px">127.44 USDC</b>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:22px;margin-top:14px">
+                  <span style="color:#6b6b68">For</span><span>Flight booking UO7K2M</span>
+                </div>
+                <div style="display:flex;gap:14px;margin-top:34px">
+                  <span style="background:#141413;color:#fff;padding:15px 30px;border-radius:10px;font-size:22px;font-weight:620" id="apbtn">Approve</span>
+                  <span style="border:1px solid #d9d7d2;padding:15px 30px;border-radius:10px;font-size:22px;color:#6b6b68">Reject</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#pay",{autoAlpha:0,y:22},{autoAlpha:1,y:0,duration:.5,ease:"power3.out"},0.2);
+          tl.fromTo("#p1",{autoAlpha:0,y:14},{autoAlpha:1,y:0,duration:.45,ease:"power3.out"},0.6);
+          tl.fromTo("#rails",{autoAlpha:0,y:18},{autoAlpha:1,y:0,duration:.5,ease:"power3.out"},1.4);
+          tl.fromTo("#p2",{autoAlpha:0,y:14},{autoAlpha:1,y:0,duration:.45,ease:"power3.out"},2.2);
+          tl.fromTo("#tracker",{autoAlpha:0,y:16},{autoAlpha:1,y:0,duration:.5,ease:"power3.out"},4.4);
+          tl.to("#sA",{className:"step done",duration:0},5.2);
+          tl.fromTo("#p3",{autoAlpha:0,y:14},{autoAlpha:1,y:0,duration:.45,ease:"power3.out"},5.6);
+          tl.to("#sB",{className:"step on",duration:0},6.4);
+          // FluxA takes the frame — this is the moment the film is built around
+          tl.to("#pay",{autoAlpha:0,duration:.35,ease:"power2.in"},6.6);
+          tl.fromTo("#fluxa",{autoAlpha:0,y:40,scale:.97},{autoAlpha:1,y:0,scale:1,duration:.6,ease:"power4.out"},7.0);
+          tl.fromTo("#p4",{autoAlpha:0,y:14},{autoAlpha:1,y:0,duration:.45,ease:"power3.out"},9.0);
+          tl.to("#apbtn",{scale:1.06,transformOrigin:"center center",duration:.3,yoyo:true,repeat:1,ease:"power2.inOut"},12.2);
+          tl.to("#fluxa",{autoAlpha:0,y:-24,duration:.5,ease:"power3.in"},13.4);
+          tl.to("#pay",{autoAlpha:1,duration:.45,ease:"power2.out"},13.95);
+          tl.to("#sB",{className:"step done",duration:0},13.9);
+          tl.to("#sC",{className:"step on",duration:0},14.0);
+          tl.to("#sC",{className:"step done",duration:0},16.4);
+          tl.to("#sD",{className:"step on",duration:0},16.5);
+          window.__timelines["mandate"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

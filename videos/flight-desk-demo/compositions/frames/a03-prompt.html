@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+      .ap { position:absolute; inset:0; background:#16150f; color:#efece4;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; }
+      .ap .mono { font-family:ui-monospace,monospace; }
+      .ap .mast { display:flex; align-items:baseline; gap:18px; padding:34px 60px 24px;
+                  border-bottom:1px solid #35332a; }
+      .ap .mast h1 { font-size:26px; font-weight:620; letter-spacing:-.01em; }
+      .ap .mast .sub { font-size:19px; color:#9c968c; }
+      .ap .chip { margin-left:auto; font-family:ui-monospace,monospace; font-size:16px;
+                  letter-spacing:.06em; text-transform:uppercase; color:#a29d90;
+                  border:1px solid #35332a; border-radius:999px; padding:6px 16px; }
+      .ap .split { display:grid; grid-template-columns:640px 1px 1fr; height:calc(1080px - 92px); }
+      .ap .rail { padding:34px 40px; overflow:hidden; }
+      .ap .vr { background:#35332a; }
+      .ap .pane { padding:28px 44px; overflow:hidden; position:relative; }
+
+      .ap .bubble { background:#6fc3a4; color:#10201a; padding:16px 22px; border-radius:12px;
+                    font-size:22px; line-height:1.45; margin-left:auto; max-width:520px; }
+      .ap .say { font-size:22px; line-height:1.55; margin-top:26px; color:#efece4; }
+      .ap .say b { color:#efece4; font-weight:640; }
+      .ap .trace { font-family:ui-monospace,monospace; font-size:17px; color:#9c968c; margin-top:18px; }
+
+      .ap .fc { border:1px solid #35332a; border-radius:14px; background:#1e1d17;
+                padding:22px 26px; margin-bottom:16px; }
+      .ap .fc-top { display:flex; align-items:center; gap:14px; }
+      .ap .fc-mark { width:40px; height:40px; border-radius:9px; background:#252419;
+                     display:grid; place-items:center; font-size:17px; font-weight:700;
+                     font-family:ui-monospace,monospace; color:#efece4; }
+      .ap .fc-no { font-family:ui-monospace,monospace; font-size:17px; color:#9c968c; }
+      .ap .fc-price { margin-left:auto; font-size:34px; font-weight:640; letter-spacing:-.02em; }
+      .ap .fc-price small { font-size:16px; color:#9c968c; font-weight:400; margin-left:6px; }
+      .ap .fc-row { display:flex; align-items:baseline; gap:22px; margin-top:16px; }
+      .ap .fc-od { font-size:17px; color:#a29d90; font-family:ui-monospace,monospace; }
+      .ap .fc-t { font-size:30px; font-weight:600; letter-spacing:-.01em; }
+      .ap .fc-line { flex:1; height:1px; background:#35332a; margin:0 6px; position:relative; top:-6px; }
+      .ap .tags { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+      .ap .pill { font-family:ui-monospace,monospace; font-size:15px; padding:5px 12px;
+                  border-radius:999px; border:1px solid #35332a; color:#a29d90; }
+      .ap .pill.ok { border-color:#6fc3a4; color:#6fc3a4; }
+      .ap .pill.warn { border-color:#d9a94f; color:#d9a94f; }
+
+      .ap .card { border:1px solid #35332a; border-radius:14px; background:#1e1d17; overflow:hidden; }
+      .ap .card-h { display:flex; justify-content:space-between; align-items:center;
+                    padding:16px 24px; background:#252419; border-bottom:1px solid #35332a;
+                    font-family:ui-monospace,monospace; font-size:16px; letter-spacing:.05em;
+                    text-transform:uppercase; color:#a29d90; }
+      .ap .card-b { padding:24px; }
+      .ap .kv { display:flex; justify-content:space-between; font-size:21px; padding:9px 0; }
+      .ap .kv .k { color:#a29d90; }
+      .ap .kv.total { font-size:26px; font-weight:640; border-top:1px solid #35332a;
+                      margin-top:10px; padding-top:16px; }
+      .ap .btn { display:inline-block; background:#6fc3a4; color:#10201a; font-weight:640;
+                 font-size:22px; padding:15px 26px; border-radius:10px; }
+      .ap .note { font-size:18px; color:#9c968c; line-height:1.5; margin-top:14px; }
+
+      .ap .step { display:flex; gap:16px; padding:13px 0; }
+      .ap .step-m { width:30px; height:30px; border-radius:50%; border:1.5px solid #4a4739;
+                    display:grid; place-items:center; font-family:ui-monospace,monospace;
+                    font-size:15px; color:#9c968c; flex:none; }
+      .ap .step.on .step-m { border-color:#6fc3a4; color:#6fc3a4; }
+      .ap .step.done .step-m { border-color:#6fc3a4; color:#6fc3a4; }
+      .ap .step-t { font-size:21px; color:#a29d90; }
+      .ap .step.on .step-t { color:#efece4; font-weight:620; }
+      .ap .outcome { display:flex; gap:16px; align-items:flex-start; margin-top:18px;
+                     padding:20px 22px; border-radius:12px; border:1px solid #6fc3a4;
+                     background:#1b2f27; }
+      .ap .outcome-m { width:36px; height:36px; border-radius:50%; border:2px solid #6fc3a4;
+                       display:grid; place-items:center; color:#6fc3a4; font-size:19px; flex:none; }
+      .ap .outcome-t { font-size:26px; font-weight:640; }
+      .ap .outcome-s { font-size:20px; color:#a29d90; margin-top:4px; }
+      .ap .outcome-s b { font-family:ui-monospace,monospace; color:#efece4; }
+</style>
+      <div id="prompt" data-composition-id="prompt" data-width="1920" data-height="1080"
+           style="position:relative;width:1920px;height:1080px;background:#16150f">
+        <div class="ap">
+          <div class="mast">
+            <h1>FluxA Flight Desk</h1><span class="sub">search &middot; price &middot; book &middot; manage</span>
+            <span class="chip">ATLAS SANDBOX</span>
+          </div>
+          <div class="split">
+            <div class="rail">
+              <div style="display:flex"><div class="bubble" id="q">I&rsquo;ve two days free in October and about two hundred dollars. Somewhere I can watch the sunrise, out of Hong Kong.</div></div>
+              <div class="trace" id="tr1" style="opacity:0">Searching flights &#10003;</div>
+              <div class="say" id="s1" style="opacity:0">Three that fit your dates. <b>Taipei</b> for Alishan&rsquo;s cloud sea, <b>Da Nang</b> for an east-facing beach, <b>Chiang Mai</b> for Doi Inthanon.</div>
+              <div class="say" id="s2" style="opacity:0">Taipei is the only one under your budget.</div>
+            </div>
+            <div class="vr"></div>
+            <div class="pane">
+              <div style="display:flex;justify-content:space-between;font-family:ui-monospace,monospace;font-size:16px;color:#9c968c;letter-spacing:.06em;margin-bottom:18px" id="hd" style="opacity:0">
+                <span>3 OPTIONS</span><span>HKG &rarr; TPE &middot; 15&ndash;17 OCT</span>
+              </div>
+            <div class="fc" id="fc1" style="opacity:0">
+              <div class="fc-top">
+                <div class="fc-mark">UO</div>
+                <div class="fc-no">UO116</div>
+                <div class="fc-price">127.44<small>USDC</small></div>
+              </div>
+              <div class="fc-row">
+                <div><div class="fc-od">HKG</div><div class="fc-t">6:40 PM</div></div>
+                <div class="fc-line"></div>
+                <div style="text-align:center"><div class="fc-od">1h 50m</div></div>
+                <div class="fc-line"></div>
+                <div style="text-align:right"><div class="fc-od">TPE</div><div class="fc-t">8:30 PM</div></div>
+              </div>
+              <div class="tags"><span class="pill ok">cheapest</span><span class="pill ">nonstop</span><span class="pill ">bag included</span><span class="pill ">refundable</span><span class="pill warn">4 seats left</span></div>
+            </div>
+            <div class="fc" id="fc2" style="opacity:0">
+              <div class="fc-top">
+                <div class="fc-mark">UO</div>
+                <div class="fc-no">UO112</div>
+                <div class="fc-price">137.61<small>USDC</small></div>
+              </div>
+              <div class="fc-row">
+                <div><div class="fc-od">HKG</div><div class="fc-t">12:35 PM</div></div>
+                <div class="fc-line"></div>
+                <div style="text-align:center"><div class="fc-od">1h 50m</div></div>
+                <div class="fc-line"></div>
+                <div style="text-align:right"><div class="fc-od">TPE</div><div class="fc-t">2:25 PM</div></div>
+              </div>
+              <div class="tags"><span class="pill ">nonstop</span><span class="pill ">bag included</span><span class="pill ">refundable</span><span class="pill warn">3 seats left</span></div>
+            </div>
+            <div class="fc" id="fc3" style="opacity:0">
+              <div class="fc-top">
+                <div class="fc-mark">UO</div>
+                <div class="fc-no">UO114</div>
+                <div class="fc-price">144.36<small>USDC</small></div>
+              </div>
+              <div class="fc-row">
+                <div><div class="fc-od">HKG</div><div class="fc-t">2:55 PM</div></div>
+                <div class="fc-line"></div>
+                <div style="text-align:center"><div class="fc-od">1h 50m</div></div>
+                <div class="fc-line"></div>
+                <div style="text-align:right"><div class="fc-od">TPE</div><div class="fc-t">4:45 PM</div></div>
+              </div>
+              <div class="tags"><span class="pill ">nonstop</span><span class="pill ">bag included</span><span class="pill ">refundable</span></div>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#q",{autoAlpha:0,y:18},{autoAlpha:1,y:0,duration:.5,ease:"power3.out"},0.3);
+          tl.fromTo("#tr1",{autoAlpha:0},{autoAlpha:1,duration:.3},2.6);
+          tl.fromTo("#hd",{autoAlpha:0},{autoAlpha:1,duration:.4},3.4);
+          tl.fromTo("#fc1",{autoAlpha:0,y:26},{autoAlpha:1,y:0,duration:.5,ease:"power3.out"},3.8);
+          tl.fromTo("#fc2",{autoAlpha:0,y:26},{autoAlpha:1,y:0,duration:.5,ease:"power3.out"},4.3);
+          tl.fromTo("#fc3",{autoAlpha:0,y:26},{autoAlpha:1,y:0,duration:.5,ease:"power3.out"},4.8);
+          tl.fromTo("#s1",{autoAlpha:0,y:14},{autoAlpha:1,y:0,duration:.5,ease:"power3.out"},6.4);
+          tl.fromTo("#s2",{autoAlpha:0,y:14},{autoAlpha:1,y:0,duration:.5,ease:"power3.out"},12.0);
+          // a slow push toward the cheapest fare, so the eye ends where the story goes
+          tl.to("#fc1",{scale:1.03,transformOrigin:"center center",duration:2.5,ease:"power2.inOut"},15.5);
+          window.__timelines["prompt"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>
