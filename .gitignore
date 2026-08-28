@@ -31,3 +31,5 @@ demo/footage/
 .claude/skills/
 .venv-tts/
 videos/*/assets/vo/*.wav
+videos/thumbnail/out/
+videos/*/snapshots/
