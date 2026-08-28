@@ -16,7 +16,7 @@ Read flat and unhurried. Every claim below is one the footage proves.
 
 **[0:16 — the mystery box]**
 
-> You do not give it a route. You give it a constraint.
+> You do not give it a route. You give it a schedule.
 > Two hundred dollars, two days, somewhere to watch the sunrise, out of Hong Kong.
 
 **[0:26 — searching]**

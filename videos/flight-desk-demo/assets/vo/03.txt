@@ -1,1 +1,1 @@
-You don't give it a route. You give it a constraint. Two hundred dollars, two days, somewhere to watch the sunrise, out of Hong Kong. It picks the destinations itself. Taipei, for Alishan's cloud sea. Da Nang, for an east facing beach. Then it searches live Atlas inventory for each of them.
+You don't give it a route. You give it a schedule. Two hundred dollars, two days, somewhere to watch the sunrise, out of Hong Kong. It picks the destinations itself. Taipei, for Alishan's cloud sea. Da Nang, for an east facing beach. Then it searches live Atlas inventory for each of them.
