@@ -3,6 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useWallet } from '@/components/providers/WalletProvider';
+import {
+  browserWalletEnabled,
+  createMandate,
+  getMandate,
+  isSigned,
+  payerHeaders,
+} from '@/lib/fluxa-browser';
 
 /**
  * Paying a fare that accepts no card.
@@ -13,11 +20,15 @@ import { useWallet } from '@/components/providers/WalletProvider';
  * collected the same way it would be for a real charge: a FluxA mandate they
  * sign themselves, re-checked server-side before anything is settled.
  *
- * What this build deliberately does NOT do is execute the deduction against
- * that mandate. This is a sandbox demonstration, so the signature is real and
- * the deduction is simulated — and every surface says so, because a screen
- * that implies money moved when it did not is the one thing a payment flow
- * must never do.
+ * Whether the deduction against that mandate is actually executed depends on
+ * `liveSettlement` — set when the desk has a receiving address configured. With
+ * one, this really charges the traveller's wallet on-chain; without one the
+ * signature is real and the deduction is skipped.
+ *
+ * Every surface below reads that flag rather than assuming either mode, because
+ * the two things a payment screen must never do are imply money moved when it
+ * did not, and imply it did not when it did. The flag defaults to false, so the
+ * copy understates rather than overstates while the wallet is still loading.
  */
 
 type Phase = 'idle' | 'requesting' | 'awaiting-signature' | 'settling' | 'done';
@@ -28,28 +39,32 @@ interface Step {
   note: string;
 }
 
-const STEPS: Step[] = [
-  {
-    key: 'requesting',
-    title: 'Request a mandate for the fare',
-    note: 'An authorisation for the amount. Creating it moves no money.',
-  },
-  {
-    key: 'awaiting-signature',
-    title: 'You sign it in FluxA',
-    note: 'The gate the agent cannot pass on its own, exactly as for a card.',
-  },
-  {
-    key: 'settling',
-    title: 'Deduction simulated · airline settled',
-    note: 'Sandbox: nothing is deducted from your wallet. The ticket is settled from the desk’s Atlas deposit.',
-  },
-  {
-    key: 'done',
-    title: 'Ticketing',
-    note: 'The airline issues ticket numbers shortly afterwards.',
-  },
-];
+function steps(live: boolean): Step[] {
+  return [
+    {
+      key: 'requesting',
+      title: 'Request a mandate for the fare',
+      note: 'An authorisation for the amount. Creating it moves no money.',
+    },
+    {
+      key: 'awaiting-signature',
+      title: 'You sign it in FluxA',
+      note: 'The gate the agent cannot pass on its own, exactly as for a card.',
+    },
+    {
+      key: 'settling',
+      title: live ? 'Charged · airline settled' : 'Deduction simulated · airline settled',
+      note: live
+        ? 'USDC leaves your wallet for the desk against the mandate you signed — no second approval. The ticket is then settled with the airline.'
+        : 'Sandbox: nothing is deducted from your wallet. The ticket is settled from the desk’s Atlas deposit.',
+    },
+    {
+      key: 'done',
+      title: 'Ticketing',
+      note: 'The airline issues ticket numbers shortly afterwards.',
+    },
+  ];
+}
 
 const ORDER: Phase[] = ['requesting', 'awaiting-signature', 'settling', 'done'];
 
@@ -76,7 +91,10 @@ export function DepositPayFlow({
   const [approvalUrl, setApprovalUrl] = useState<string | null>(null);
   const [mandateStatus, setMandateStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
   const settling = useRef(false);
+  const live = wallet.liveSettlement;
+  const STEPS = steps(live);
 
   // Keep the wallet menu from closing under a signature in progress.
   const running = phase !== 'idle' && phase !== 'done';
@@ -93,7 +111,13 @@ export function DepositPayFlow({
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // Identifies the wallet the charge comes out of. Empty unless the
+          // browser wallet is on, in which case the server settles as this
+          // visitor rather than as itself.
+          ...(await payerHeaders()),
+        },
         body: JSON.stringify({
           action: 'pay',
           orderId,
@@ -104,12 +128,19 @@ export function DepositPayFlow({
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? 'Could not settle this booking');
       setPhase('done');
+      // Report what the server says happened, not what the UI expected. If the
+      // two ever disagree the server is right, and the agent must not be told
+      // a charge was simulated when a txHash came back.
+      const charged = body.simulatedDeduction === false;
+      setTxHash(body.settlement?.txHash ?? null);
       onSettled(
         `I approved the ${amount.toFixed(2)} ${currency} mandate for order ${orderId}. ` +
           (soleRail
             ? "This fare takes no card, so it settled from the desk's Atlas deposit"
             : "I chose to settle from the desk's Atlas deposit rather than my card") +
-          ` and the deduction from my wallet was simulated — no money moved. ` +
+          (charged
+            ? `, and ${amount.toFixed(2)} USDC was charged from my FluxA wallet against that mandate. `
+            : ` and the deduction from my wallet was simulated — no money moved. `) +
           `It is now ${body.order.status}.`,
       );
     } catch (err) {
@@ -124,6 +155,18 @@ export function DepositPayFlow({
     if (phase !== 'awaiting-signature' || !mandateId) return;
     const timer = setInterval(async () => {
       try {
+        // Asked of whichever wallet holds the mandate. Polling the server's
+        // wallet for a mandate that lives on the traveller's would wait for a
+        // signature that is never going to appear there.
+        if (browserWalletEnabled()) {
+          const mandate = await getMandate(mandateId);
+          if (mandate.status) setMandateStatus(mandate.status);
+          if (isSigned(mandate)) {
+            clearInterval(timer);
+            await settle(mandateId);
+          }
+          return;
+        }
         const res = await fetch(`/api/cards?mandateId=${encodeURIComponent(mandateId)}`);
         const body = await res.json();
         if (body.mandate?.status) setMandateStatus(body.mandate.status);
@@ -143,6 +186,27 @@ export function DepositPayFlow({
     setError(null);
     setPhase('requesting');
     try {
+      // Raised on the traveller's own wallet, straight to FluxA. A mandate is
+      // the sentence someone is agreeing to, so the fewer parties between them
+      // and it, the less there is to trust. The wording is composed here from
+      // the fare and the booking reference — never from text a response
+      // supplied, because a consent string an attacker can write is not consent.
+      if (browserWalletEnabled()) {
+        const mandate = await createMandate({
+          amountUsd: amount,
+          description: `Pay ${amount.toFixed(2)} USDC for flight booking ${(
+            reference ?? orderId
+          ).replace(/[^A-Za-z0-9-]/g, '').slice(0, 24)}`,
+        });
+        setMandateId(mandate.id);
+        if (isSigned(mandate)) await settle(mandate.id);
+        else {
+          setApprovalUrl(mandate.approvalUrl ?? null);
+          setPhase('awaiting-signature');
+        }
+        return;
+      }
+
       const res = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -176,8 +240,11 @@ export function DepositPayFlow({
     <div className="pay deposit-pay">
       <p className="note warn">
         {soleRail
-          ? 'This airline takes no card for this fare. It settles from the desk’s Atlas deposit — you authorise the amount, but in this sandbox the deduction from your wallet is simulated and no money moves.'
-          : 'Settling from the desk’s Atlas deposit rather than your card. You authorise the amount, but in this sandbox the deduction from your wallet is simulated and no money moves.'}
+          ? 'This airline takes no card for this fare. It settles from the desk’s Atlas deposit — '
+          : 'Settling from the desk’s Atlas deposit rather than your card. '}
+        {live
+          ? `You authorise the amount once, and ${amount.toFixed(2)} USDC is then charged from your FluxA wallet against that mandate. This is a real transfer.`
+          : 'You authorise the amount, but in this sandbox the deduction from your wallet is simulated and no money moves.'}
       </p>
 
       <div className="actions">
@@ -230,6 +297,22 @@ export function DepositPayFlow({
                         FluxA reports <code>{mandateStatus ?? 'pending_signature'}</code>.
                         This continues on its own once you sign.
                       </span>
+                    </span>
+                  ) : null}
+
+                  {/* The receipt. A settled charge that shows no evidence is
+                      indistinguishable from a simulated one, which is exactly
+                      the ambiguity this rail exists to remove. */}
+                  {step.key === 'settling' && txHash ? (
+                    <span className="step-action">
+                      <a
+                        className="note"
+                        href={`https://basescan.org/tx/${txHash}`}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        Charged on Base — <code>{txHash.slice(0, 10)}…{txHash.slice(-8)}</code> ↗
+                      </a>
                     </span>
                   ) : null}
                 </span>

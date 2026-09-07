@@ -69,6 +69,14 @@ interface WalletValue {
   /** True while issuance is mid-flight, so menus do not close under it. */
   issuing: boolean;
   setIssuing: (v: boolean) => void;
+  /**
+   * True when the deposit rail really charges the traveller's wallet.
+   *
+   * Defaults to false so a wallet that has not loaded yet never claims a
+   * charge is real. Understating what moves is recoverable; overstating it
+   * is not.
+   */
+  liveSettlement: boolean;
 }
 
 const WalletContext = createContext<WalletValue | null>(null);
@@ -114,6 +122,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [selectedCardId, setSelectedCardId] = useState<string | undefined>();
   const [pendingMandate, setPendingMandate] = useState<PendingMandate | null>(null);
   const [issuing, setIssuing] = useState(false);
+  const [liveSettlement, setLiveSettlement] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -127,6 +136,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const next: CardSummary[] = body.cards ?? [];
       setCards(next);
       setCardholder(body.cardholder ?? null);
+      setLiveSettlement(body.liveSettlement === true);
       setError(null);
       // Preselect the card most likely to be usable, so a first-time visitor
       // is not sent to the wallet panel just to tick a box. The richest card
@@ -161,8 +171,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setPendingMandate,
       issuing,
       setIssuing,
+      liveSettlement,
     }),
-    [cards, cardholder, loading, error, selectedCardId, refresh, pendingMandate, issuing],
+    [
+      cards,
+      cardholder,
+      loading,
+      error,
+      selectedCardId,
+      refresh,
+      pendingMandate,
+      issuing,
+      liveSettlement,
+    ],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

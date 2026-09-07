@@ -402,3 +402,127 @@ export function maskPan(pan: string): string {
   if (digits.length < 4) return '••••';
   return `•••• ${digits.slice(-4)}`;
 }
+
+/* ---------- settlement: paying the desk ---------- */
+
+export interface Payout {
+  payoutId: string;
+  status: string;
+  txHash?: string | null;
+  approvalUrl?: string | null;
+  failureReason?: string | null;
+}
+
+/** Terminal payout states — polling stops at any of these. */
+const PAYOUT_DONE = new Set(['succeeded', 'failed', 'expired']);
+
+function normalisePayout(raw: any): Payout {
+  const p = raw?.payout ?? raw;
+  return {
+    payoutId: p.payoutId ?? p.payout_id ?? p.id,
+    status: p.status,
+    txHash: p.txHash ?? p.tx_hash ?? null,
+    approvalUrl: p.approvalUrl ?? null,
+    failureReason: p.failureReason ?? p.failure_reason ?? null,
+  };
+}
+
+/**
+ * Charge the traveller: move USDC out of their wallet to the desk's address.
+ *
+ * `--mandate` is what makes this autonomous. A bare payout parks at
+ * `pending_authorization` behind an approval URL; one carrying a signed
+ * mandate comes back `authorized` and settles with no second click. That is
+ * the mandate's whole purpose — the traveller approved the amount once, and
+ * the desk collects against it.
+ *
+ * `payoutId` is the idempotency key and MUST be derived from the order rather
+ * than generated fresh. A retried request with a fresh id charges twice, and a
+ * payout cannot be reversed.
+ */
+export async function payoutWithMandate(params: {
+  to: string;
+  amountUsd: number;
+  payoutId: string;
+  mandateId: string;
+  description?: string;
+}): Promise<Payout> {
+  const atomic = Math.round(params.amountUsd * 1_000_000);
+  const args = [
+    'payout',
+    '--to', params.to,
+    '--amount', String(atomic),
+    '--id', params.payoutId,
+    '--mandate', params.mandateId,
+  ];
+  if (params.description) args.push('--description', params.description);
+  return normalisePayout(await cli<any>(args));
+}
+
+export async function getPayoutStatus(payoutId: string): Promise<Payout> {
+  return normalisePayout(await cli<any>(['payout-status', '--id', payoutId]));
+}
+
+/**
+ * Poll until the payout reaches a terminal state.
+ *
+ * A payout still `processing` when the budget expires is deliberately NOT
+ * reported as a failure — the transaction may yet land, and calling it failed
+ * is what invites a caller to retry and double-charge. The last known state is
+ * returned so the caller decides.
+ */
+export async function awaitPayout(
+  payoutId: string,
+  opts?: { timeoutMs?: number; intervalMs?: number },
+): Promise<Payout> {
+  const timeoutMs = opts?.timeoutMs ?? 60_000;
+  const intervalMs = opts?.intervalMs ?? 2_000;
+  const deadline = Date.now() + timeoutMs;
+
+  let last = await getPayoutStatus(payoutId);
+  while (!PAYOUT_DONE.has(last.status ?? '') && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    last = await getPayoutStatus(payoutId);
+  }
+  return last;
+}
+
+/**
+ * Sign an x402 payment against a signed mandate, returning the `X-Payment`
+ * blob the merchant's resource expects.
+ *
+ * This is the payer's half of the merchant charge flow: the desk publishes a
+ * 402, and this converts that challenge into proof of payment drawn from the
+ * traveller's mandate. The merchant's half is HTTP and lives in `settlement`.
+ */
+export async function signX402Payment(params: {
+  mandateId: string;
+  challenge: unknown;
+}): Promise<string> {
+  const data = await cli<any>([
+    'x402',
+    '--mandate', params.mandateId,
+    '--payload', JSON.stringify(params.challenge),
+  ]);
+  const blob = data?.xPaymentB64 ?? data?.xPayment ?? data?.payment;
+  if (!blob) {
+    throw new FluxaError('FluxA returned no X-Payment blob', 'x402_no_payment');
+  }
+  return String(blob);
+}
+
+/** The desk's receiving address, or null when real settlement is unconfigured. */
+export function settlementAddress(): string | null {
+  // Quotes are stripped defensively. Most loaders remove them, but one that
+  // does not would fail the check below and take the whole wallet down with
+  // it — an expensive way to discover a pair of quote marks.
+  const addr = process.env.FLUXA_SETTLEMENT_ADDRESS?.trim().replace(/^["']|["']$/g, '');
+  if (!addr) return null;
+  if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+    throw new FluxaError(
+      `FLUXA_SETTLEMENT_ADDRESS is not a valid Base address: ${addr}`,
+      'bad_settlement_address',
+    );
+  }
+  return addr;
+}

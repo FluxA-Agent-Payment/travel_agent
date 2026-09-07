@@ -11,6 +11,7 @@ import {
   isMandateSigned,
   listCards,
 } from '@/lib/payments/fluxa';
+import { requiresPayerIdentity, settlesRealMoney } from '@/lib/payments/desk';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -43,13 +44,42 @@ export async function GET(req: NextRequest) {
       listCards(),
       getCardholder().catch(() => null),
     ]);
-    return Response.json({ cards, cardholder });
+    // Whether the deposit rail really charges. Every surface that promises the
+    // traveller "no money moves" has to be able to stop promising it, so this
+    // travels with the wallet rather than being assumed by the UI. A malformed
+    // address throws here on purpose — surfacing the typo now beats discovering
+    // it at the moment of a charge.
+    return Response.json({ cards, cardholder, liveSettlement: settlesRealMoney() });
   } catch (err) {
     return errorResponse(err);
   }
 }
 
+/**
+ * Card issuance and mandates on the *server's* wallet.
+ *
+ * That is correct for a desk running its own single wallet, and unacceptable
+ * once travellers are meant to pay from theirs: every route below would spend
+ * the operator's money on a visitor's click. The cards API has no per-visitor
+ * form yet, so rather than leave it half-converted it is closed outright when
+ * the browser wallet is on.
+ */
+function refuseIfNotOurWallet(): Response | null {
+  if (!requiresPayerIdentity()) return null;
+  return Response.json(
+    {
+      error:
+        'Card issuance runs on the desk’s own wallet and is disabled while travellers pay from theirs.',
+      code: 'server_wallet_disabled',
+    },
+    { status: 409 },
+  );
+}
+
 export async function POST(req: NextRequest) {
+  const refused = refuseIfNotOurWallet();
+  if (refused) return refused;
+
   let body: {
     action?: string;
     amountUsd?: number;

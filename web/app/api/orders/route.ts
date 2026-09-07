@@ -2,10 +2,118 @@ import { NextRequest } from 'next/server';
 
 import { getBookingProvider } from '@/lib/booking';
 import { expandTravellers } from '@/lib/travellers';
-import { getMandateStatus, isMandateSigned } from '@/lib/payments/fluxa';
+import {
+  FluxaError,
+  awaitPayout,
+  getMandateStatus,
+  isMandateSigned,
+  payoutWithMandate,
+  settlementAddress,
+} from '@/lib/payments/fluxa';
+import { chargeWithMandate, deskIdentity, requiresPayerIdentity } from '@/lib/payments/desk';
+import { findSettlement, recordSettlement, type Settlement } from '@/lib/payments/ledger';
+import { getMandateViaApi } from '@/lib/payments/wallet-api';
 import { isBookingError, type Contact, type Passenger } from '@/lib/types';
 
 export const runtime = 'nodejs';
+
+/**
+ * Take payment for an order — or don't, if this build settles nothing.
+ *
+ * Three rails, in preference order:
+ *
+ *   1. a merchant invoice, when the desk has its own FluxA identity. Two
+ *      parties, money genuinely changing hands.
+ *   2. a direct payout to a configured address. A real transfer, but from and
+ *      to wallets the same person may well own.
+ *   3. nothing. The sandbox default, and what `simulatedDeduction` reports.
+ *
+ * Returns null only for (3). Anything else either returns a recorded
+ * settlement or throws — it never returns quietly having failed to charge,
+ * because the caller's next act is to issue a ticket.
+ */
+async function chargeForOrder(params: {
+  orderId: string;
+  mandateId: string;
+  amountUsd: number;
+  reference: string;
+  /**
+   * The payer's FluxA JWT, when the caller has one.
+   *
+   * Absent, the server's own wallet pays — correct for a desk running a single
+   * wallet locally, and the thing that must never happen once this is hosted,
+   * because it would bill the operator for a stranger's ticket. The payout
+   * rail below has no equivalent and stays single-wallet by construction,
+   * which is why a hosted deployment must configure the merchant rail.
+   */
+  payerJwt?: string;
+}): Promise<Settlement | null> {
+  // Has this order already been paid for? Asked first, before any rail runs,
+  // because a retried or double-submitted request is indistinguishable from a
+  // genuine one and the charge cannot be taken back.
+  const existing = findSettlement(params.orderId);
+  if (existing) return existing;
+
+  // Refuse rather than fall back. Once travellers are meant to pay from their
+  // own wallets, a request without one is either a bug or someone else's
+  // booking about to be charged to the operator — and both are worse than an
+  // error the caller can see.
+  if (requiresPayerIdentity() && !params.payerJwt) {
+    throw new FluxaError(
+      'No FluxA identity for this payment — connect a wallet before paying',
+      'payer_required',
+    );
+  }
+
+  const description = `Flight booking ${params.reference}`;
+  const common = {
+    orderId: params.orderId,
+    amountUsd: params.amountUsd,
+    mandateId: params.mandateId,
+    settledAt: new Date().toISOString(),
+  };
+
+  if (deskIdentity()) {
+    const charge = await chargeWithMandate({
+      mandateId: params.mandateId,
+      amountUsd: params.amountUsd,
+      description,
+      reference: params.reference,
+      payerJwt: params.payerJwt,
+    });
+    const record: Settlement = { ...common, txHash: charge.txHash, rail: 'payment-link' };
+    recordSettlement(record);
+    return record;
+  }
+
+  const to = settlementAddress();
+  if (!to) return null;
+
+  const started = await payoutWithMandate({
+    to,
+    amountUsd: params.amountUsd,
+    payoutId: `flightdesk-${params.orderId}`,
+    mandateId: params.mandateId,
+    description,
+  });
+  const final = await awaitPayout(started.payoutId);
+
+  if (final.status !== 'succeeded') {
+    // Deliberately thrown rather than returned. A payout still `processing`
+    // may yet land, so this must not read as "no charge happened" — it reads
+    // as "do not ticket, and go and look".
+    throw new FluxaError(
+      final.status === 'failed' || final.status === 'expired'
+        ? `Payment did not go through — ${final.failureReason ?? final.status}. Nothing has been booked.`
+        : `Payment is still settling (${final.status}). Nothing has been booked yet — check the order again shortly.`,
+      `payout_${final.status}`,
+    );
+  }
+
+  const record: Settlement = { ...common, txHash: final.txHash, rail: 'payout' };
+  recordSettlement(record);
+  return record;
+}
 
 /**
  * Place an order from an approved draft, or advance one that has been paid.
@@ -39,6 +147,12 @@ export async function POST(req: NextRequest) {
   }
 
   const booking = getBookingProvider();
+
+  // The payer's FluxA identity, when the caller brought one. Taken from a
+  // header rather than the JSON body so it cannot be confused with anything
+  // the agent is able to emit — the model has no way to reach this value, and
+  // that separation is deliberate.
+  const payerJwt = req.headers.get('x-fluxa-jwt')?.trim() || undefined;
 
   try {
     switch (body.action) {
@@ -97,7 +211,13 @@ export async function POST(req: NextRequest) {
               { status: 400 },
             );
           }
-          const mandate = await getMandateStatus(body.mandateId);
+          // Checked against the payer's own wallet when they have one, so the
+          // signature verified is the signature that will be spent. Verifying
+          // a mandate on the server's wallet and then charging someone else's
+          // would be checking the wrong lock.
+          const mandate = payerJwt
+            ? await getMandateViaApi({ jwt: payerJwt, mandateId: body.mandateId })
+            : await getMandateStatus(body.mandateId);
           if (!isMandateSigned(mandate)) {
             return Response.json(
               {
@@ -107,14 +227,28 @@ export async function POST(req: NextRequest) {
               { status: 409 },
             );
           }
+          // Charge BEFORE ticketing. This rail's claim is "no ticket without
+          // payment", so the payment is the gate: if the charge does not land,
+          // nothing gets booked.
+          const pending = await booking.getOrder(body.orderId);
+          const settlement = await chargeForOrder({
+            orderId: body.orderId,
+            mandateId: body.mandateId,
+            amountUsd: pending.totalPrice,
+            reference: pending.pnr ?? body.orderId,
+            payerJwt,
+          });
+
           const settled = await booking.completePayment(body.orderId, {
             method: 'deposit',
           });
           return Response.json({
             order: settled,
             // Stated on the wire, not just in the UI, so no caller can mistake
-            // this for a completed charge.
-            simulatedDeduction: true,
+            // one for the other. With a desk address configured this is a real
+            // on-chain charge and carries its txHash; without one, no money moved.
+            simulatedDeduction: !settlement,
+            settlement,
           });
         }
 
@@ -148,6 +282,15 @@ export async function POST(req: NextRequest) {
       return Response.json(
         { error: err.message, code: err.code },
         { status: err.code === 'not_found' ? 404 : 400 },
+      );
+    }
+    // A wallet failure during settlement — most often too little USDC to cover
+    // the fare. It is the traveller's problem to fix, not a server fault, so it
+    // gets a 402 and its own message rather than a generic 500.
+    if (err instanceof FluxaError) {
+      return Response.json(
+        { error: err.message, code: err.code, settlementFailed: true },
+        { status: 402 },
       );
     }
     return Response.json(

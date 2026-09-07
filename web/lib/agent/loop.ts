@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 import { buildTools, type UiEvent } from './tools';
 import { systemPrompt } from './prompt';
+import { settlesRealMoney } from '@/lib/payments/desk';
 
 /** Guardrail against a pathological tool loop. Normal bookings use 4-8. */
 const MAX_TURNS = 16;
@@ -28,7 +29,7 @@ export async function runAgentTurn(
   const client = new Anthropic();
   const tools = buildTools((event) => emit(event));
   const messages: Anthropic.MessageParam[] = [...history];
-  const system = systemPrompt(new Date().toISOString().slice(0, 10));
+  const system = systemPrompt(new Date().toISOString().slice(0, 10), settlesRealMoney());
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     if (signal?.aborted) break;
