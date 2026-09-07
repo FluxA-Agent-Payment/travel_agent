@@ -211,6 +211,21 @@ export async function POST(req: NextRequest) {
               { status: 400 },
             );
           }
+          // Refused before any wallet is touched. `chargeForOrder` checks this
+          // too and is the real backstop, but reaching it means having already
+          // looked up a mandate on the wrong wallet — work that cannot succeed
+          // and whose failure would read as a mandate problem rather than a
+          // missing identity.
+          if (requiresPayerIdentity() && !payerJwt) {
+            return Response.json(
+              {
+                error: 'Connect a FluxA wallet before paying — this desk does not pay for you',
+                code: 'payer_required',
+              },
+              { status: 401 },
+            );
+          }
+
           // Checked against the payer's own wallet when they have one, so the
           // signature verified is the signature that will be spent. Verifying
           // a mandate on the server's wallet and then charging someone else's

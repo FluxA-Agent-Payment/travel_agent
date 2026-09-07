@@ -12,9 +12,14 @@
  * JWT, per request, which is enough to settle an invoice the visitor has
  * signed a mandate for and nothing else.
  *
- * Mandates are created directly against FluxA rather than through our API on
- * purpose. A mandate is the sentence a person is agreeing to; the fewer
- * parties standing between them and it, the less there is to trust.
+ * Identity creation talks to FluxA directly — `agentid` allows any origin — so
+ * the token this identity rests on is minted in the browser and stays there.
+ * Wallet calls cannot: `walletapi` refuses every cross-origin preflight and
+ * permits only `content-type` as a request header, so a bearer token cannot
+ * leave a page at all. Those hop through our own API instead, still carrying
+ * the traveller's JWT. We would rather they did not — the fewer parties
+ * between a person and the mandate they are signing, the less to trust — but
+ * the choice is a proxy or no browser wallet.
  *
  * ONE DELIBERATE OMISSION: the agent token is kept in localStorage and is not
  * mirrored to our server. Ava does mirror it, so a user's payment identity
@@ -31,8 +36,6 @@ const JWT_KEY = 'flightdesk.fluxa.jwt';
 
 const AGENT_ID_API =
   process.env.NEXT_PUBLIC_FLUXA_AGENT_ID_API ?? 'https://agentid.fluxapay.xyz';
-const WALLET_API =
-  process.env.NEXT_PUBLIC_FLUXA_WALLET_API ?? 'https://walletapi.fluxapay.xyz';
 
 const isBrowser = typeof window !== 'undefined';
 
@@ -125,14 +128,25 @@ function isJwtExpired(jwt: string, bufferSeconds = 60): boolean {
   }
 }
 
-/** Register a fresh FluxA agent for this browser. */
+/**
+ * Register a fresh FluxA agent for this browser.
+ *
+ * NO EMAIL. An email identifies an owning account, so registering with one
+ * mints the agent into an account nobody can log into, and the traveller —
+ * signed into their own FluxA account — is then told "Agent already exists on
+ * another account" when they try to adopt it. Omitting it leaves the agent
+ * unowned, which is what makes `add-agent` below able to claim it.
+ *
+ * This is what the wallet CLI does, and the reason Ava can get away with the
+ * other shape: their users arrive without a FluxA account at all, so the
+ * synthetic one it creates is the one they end up in.
+ */
 async function registerAgent(): Promise<string> {
   const unique = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
   const res = await fetch(`${AGENT_ID_API}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: `flightdesk_${unique}@flightdesk.local`,
       agent_name: `FlightDesk-${unique.slice(-8)}`,
       client_info: isBrowser ? window.location.origin : 'flight-desk',
     }),
@@ -179,13 +193,52 @@ export async function ensureAuthenticated(): Promise<string> {
   return registerAgent();
 }
 
+/* ---------- linking a wallet ---------- */
+
+const AGENT_WALLET_APP =
+  process.env.NEXT_PUBLIC_FLUXA_WALLET_APP ?? 'https://agentwallet.fluxapay.xyz';
+
+/**
+ * Where the traveller adopts this browser's agent into their own wallet.
+ *
+ * The step that has to happen before any mandate can be read or spent. It is
+ * not the mandate's own approval URL: that one assumes the agent already
+ * belongs to somebody, and sends a traveller who is signed in elsewhere into
+ * "Agent already exists on another account".
+ */
+export function linkWalletUrl(agentName = 'Flight Desk'): string | null {
+  const agentId = getAgentId();
+  if (!agentId) return null;
+  const params = new URLSearchParams({ agentId, name: agentName });
+  return `${AGENT_WALLET_APP}/add-agent?${params.toString()}`;
+}
+
+/**
+ * Whether this browser's agent has been adopted into a wallet yet.
+ *
+ * Asked of the mandate list, because that is the call FluxA answers 403 to
+ * while an agent is unlinked — there is no dedicated endpoint, and the CLI
+ * settles it the same way.
+ */
+export async function isWalletLinked(): Promise<boolean> {
+  try {
+    const body = await proxy('/api/wallet?probe=linked');
+    return body?.linked === true;
+  } catch {
+    return false;
+  }
+}
+
 /* ---------- mandates ---------- */
 
 function toMandate(raw: any): BrowserMandate {
   const m = raw?.mandate ?? (Array.isArray(raw?.mandates) ? raw.mandates[0] : raw);
   return {
     id: m?.mandateId ?? m?.id,
-    status: m?.status,
+    // See the matching note server-side: 'ok' is the call having succeeded,
+    // not the mandate's state. Both normalisers have to agree, or the browser
+    // and the server disagree about whether a signature has happened.
+    status: m?.status === 'ok' ? 'pending_signature' : m?.status,
     approvalUrl: m?.authorizationUrl ?? m?.approvalUrl ?? m?.signUrl ?? null,
     signedAt: m?.signedAt ?? null,
   };
@@ -202,26 +255,45 @@ export function isSigned(m: BrowserMandate | null): boolean {
   return Boolean(m.signedAt) || status === 'signed' || status === 'active';
 }
 
-async function walletFetch(path: string, init: RequestInit = {}): Promise<any> {
+/**
+ * Wallet operations, through our own server.
+ *
+ * Not the first choice. The browser would rather call FluxA directly, but
+ * `walletapi.fluxapay.xyz` answers the CORS preflight with 403 for every
+ * origin and allows only `content-type` in `access-control-allow-headers`, so
+ * a bearer token cannot be sent from a page at all. `agentid` does allow it,
+ * which is why registration above stays client-side and only these calls hop
+ * through us.
+ *
+ * The JWT still travels on every request and still identifies the payer, so
+ * the server gains a position in the path but no authority: it has no wallet
+ * of its own to fall back to and cannot act for anyone without their token.
+ */
+async function proxy(path: string, init: RequestInit = {}): Promise<any> {
   const send = (jwt: string) =>
-    fetch(`${WALLET_API}${path}`, {
+    fetch(path, {
       ...init,
       headers: {
         'Content-Type': 'application/json',
         ...(init.headers ?? {}),
-        Authorization: `Bearer ${jwt}`,
+        'X-Fluxa-Jwt': jwt,
       },
     });
 
   let res = await send(await ensureAuthenticated());
-  if (res.status === 401 || res.status === 403) {
+  let body = await res.json().catch(() => ({}));
+
+  // Retry only when the token itself is the problem. An agent that has not
+  // been linked to a wallet yet also answers 401 through our proxy, and
+  // minting it a new token changes nothing — it just loops.
+  if (res.status === 401 && body?.code === 'jwt_expired') {
     res = await send(await refreshJwt());
+    body = await res.json().catch(() => ({}));
   }
-  const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new FluxaBrowserError(
-      body?.error ?? body?.message ?? `FluxA returned ${res.status}`,
-      'wallet_error',
+      body?.error ?? `Wallet request failed (${res.status})`,
+      body?.code ?? 'wallet_error',
     );
   }
   return body;
@@ -230,27 +302,23 @@ async function walletFetch(path: string, init: RequestInit = {}): Promise<any> {
 /**
  * Create a mandate on the traveller's own wallet.
  *
- * `description` is the sentence they will read on FluxA's approval screen, so
- * it has to describe what actually happens next. It is composed by the caller
- * from a closed set, never from free text a request supplied — a consent
- * string that an attacker can write is not consent.
+ * Only the amount and the booking reference are sent. The sentence the
+ * traveller reads on FluxA's approval screen is composed server-side from a
+ * closed template, so no part of the consent text can be set by whatever
+ * called this — a description an attacker can write is not consent.
  */
 export async function createMandate(params: {
   amountUsd: number;
-  description: string;
+  reference: string;
   seconds?: number;
 }): Promise<BrowserMandate> {
-  const body = await walletFetch('/api/mandates/create-intent', {
+  const body = await proxy('/api/wallet', {
     method: 'POST',
     body: JSON.stringify({
-      intent: {
-        naturalLanguage: params.description,
-        category: 'general',
-        currency: 'USDC',
-        limitAmount: String(Math.round(params.amountUsd * 1_000_000)),
-        validForSeconds: params.seconds ?? 3600,
-        hostAllowlist: [],
-      },
+      action: 'mandate-create',
+      amountUsd: params.amountUsd,
+      reference: params.reference,
+      seconds: params.seconds,
     }),
   });
   const mandate = toMandate(body);
@@ -261,7 +329,9 @@ export async function createMandate(params: {
 }
 
 export async function getMandate(mandateId: string): Promise<BrowserMandate> {
-  return toMandate(await walletFetch(`/api/mandates/agent/${encodeURIComponent(mandateId)}`));
+  return toMandate(
+    await proxy(`/api/wallet?mandateId=${encodeURIComponent(mandateId)}`),
+  );
 }
 
 /**

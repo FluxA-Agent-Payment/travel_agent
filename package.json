@@ -1,1 +1,9 @@
-{}
+{
+  "name": "flight-desk",
+  "private": true,
+  "description": "Root shim so a host that builds from the repo root finds the app, which lives in web/.",
+  "scripts": {
+    "build": "npm --prefix web ci && npm --prefix web run build",
+    "start": "npm --prefix web run start"
+  }
+}

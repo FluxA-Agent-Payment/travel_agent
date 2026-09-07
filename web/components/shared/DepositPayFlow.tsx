@@ -8,6 +8,8 @@ import {
   createMandate,
   getMandate,
   isSigned,
+  isWalletLinked,
+  linkWalletUrl,
   payerHeaders,
 } from '@/lib/fluxa-browser';
 
@@ -31,7 +33,7 @@ import {
  * copy understates rather than overstates while the wallet is still loading.
  */
 
-type Phase = 'idle' | 'requesting' | 'awaiting-signature' | 'settling' | 'done';
+type Phase = 'idle' | 'linking' | 'requesting' | 'awaiting-signature' | 'settling' | 'done';
 
 interface Step {
   key: Exclude<Phase, 'idle'>;
@@ -39,8 +41,21 @@ interface Step {
   note: string;
 }
 
-function steps(live: boolean): Step[] {
+function steps(live: boolean, ownWallet: boolean): Step[] {
   return [
+    // Only shown when the traveller pays for themselves. It is a real step and
+    // a first-time-only one: an agent this browser just registered belongs to
+    // nobody until its owner claims it, and until then it can neither read a
+    // mandate nor spend.
+    ...(ownWallet
+      ? [
+          {
+            key: 'linking' as const,
+            title: 'Connect your FluxA wallet',
+            note: 'This browser has its own agent. Authorise it once, in your own wallet.',
+          },
+        ]
+      : []),
     {
       key: 'requesting',
       title: 'Request a mandate for the fare',
@@ -66,7 +81,6 @@ function steps(live: boolean): Step[] {
   ];
 }
 
-const ORDER: Phase[] = ['requesting', 'awaiting-signature', 'settling', 'done'];
 
 export function DepositPayFlow({
   orderId,
@@ -92,9 +106,14 @@ export function DepositPayFlow({
   const [mandateStatus, setMandateStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const settling = useRef(false);
   const live = wallet.liveSettlement;
-  const STEPS = steps(live);
+  const ownWallet = browserWalletEnabled();
+  const STEPS = steps(live, ownWallet);
+  const ORDER: Phase[] = ownWallet
+    ? ['linking', 'requesting', 'awaiting-signature', 'settling', 'done']
+    : ['requesting', 'awaiting-signature', 'settling', 'done'];
 
   // Keep the wallet menu from closing under a signature in progress.
   const running = phase !== 'idle' && phase !== 'done';
@@ -151,6 +170,27 @@ export function DepositPayFlow({
     }
   }
 
+  // Wait for the traveller to adopt this browser's agent into their wallet.
+  // They do it in FluxA's own app, in another tab, so there is nothing to
+  // await — only to keep asking until the answer changes.
+  useEffect(() => {
+    if (phase !== 'linking' || !linkUrl) return;
+    const timer = setInterval(async () => {
+      if (await isWalletLinked()) {
+        clearInterval(timer);
+        setLinkUrl(null);
+        try {
+          await raiseMandate();
+        } catch (err) {
+          setError((err as Error).message);
+          setPhase('idle');
+        }
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, linkUrl]);
+
   useEffect(() => {
     if (phase !== 'awaiting-signature' || !mandateId) return;
     const timer = setInterval(async () => {
@@ -182,28 +222,42 @@ export function DepositPayFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, mandateId]);
 
+  /**
+   * Raise the mandate on the traveller's own wallet.
+   *
+   * Only the amount and the booking reference are sent: the sentence they will
+   * actually approve is composed server-side from a closed template, so
+   * nothing here can influence the words on the consent screen.
+   */
+  async function raiseMandate() {
+    setPhase('requesting');
+    const mandate = await createMandate({
+      amountUsd: amount,
+      reference: reference ?? orderId,
+    });
+    setMandateId(mandate.id);
+    if (isSigned(mandate)) await settle(mandate.id);
+    else {
+      setApprovalUrl(mandate.approvalUrl ?? null);
+      setPhase('awaiting-signature');
+    }
+  }
+
   async function start() {
     setError(null);
     setPhase('requesting');
     try {
-      // Raised on the traveller's own wallet, straight to FluxA. A mandate is
-      // the sentence someone is agreeing to, so the fewer parties between them
-      // and it, the less there is to trust. The wording is composed here from
-      // the fare and the booking reference — never from text a response
-      // supplied, because a consent string an attacker can write is not consent.
       if (browserWalletEnabled()) {
-        const mandate = await createMandate({
-          amountUsd: amount,
-          description: `Pay ${amount.toFixed(2)} USDC for flight booking ${(
-            reference ?? orderId
-          ).replace(/[^A-Za-z0-9-]/g, '').slice(0, 24)}`,
-        });
-        setMandateId(mandate.id);
-        if (isSigned(mandate)) await settle(mandate.id);
-        else {
-          setApprovalUrl(mandate.approvalUrl ?? null);
-          setPhase('awaiting-signature');
+        // An agent this browser registered belongs to nobody until its owner
+        // claims it, and an unclaimed agent cannot read a mandate, let alone
+        // spend one. Checked before raising anything, so the traveller is sent
+        // to connect a wallet rather than to a mandate that will not work.
+        setPhase('linking');
+        if (!(await isWalletLinked())) {
+          setLinkUrl(linkWalletUrl());
+          return;
         }
+        await raiseMandate();
         return;
       }
 
@@ -276,6 +330,23 @@ export function DepositPayFlow({
                 <span className="step-body">
                   <span className="step-title">{step.title}</span>
                   <span className="step-note">{step.note}</span>
+
+                  {step.key === 'linking' && state === 'active' && linkUrl ? (
+                    <span className="step-action">
+                      <a
+                        className="btn primary"
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        Connect your FluxA wallet →
+                      </a>
+                      <span className="note">
+                        Sign in to FluxA and authorise this agent. This continues
+                        on its own once you do, and is only needed the first time.
+                      </span>
+                    </span>
+                  ) : null}
 
                   {step.key === 'awaiting-signature' && state === 'active' ? (
                     <span className="step-action">

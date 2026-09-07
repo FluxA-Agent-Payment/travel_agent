@@ -2,6 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 
 import { getBookingProvider } from '../booking';
 import { listCards } from '../payments/fluxa';
+import { requiresPayerIdentity } from '../payments/desk';
 import { expandTravellers, listTravellers } from '../travellers';
 import { BookingError, isBookingError } from '../types';
 
@@ -330,6 +331,16 @@ export function buildTools(emit: Emit) {
     inputSchema: { type: 'object', properties: {} },
     run: () =>
       guard(emit, 'check_wallet', async () => {
+        // Reads the SERVER's wallet through the CLI. Where travellers pay for
+        // themselves there is no server wallet to describe and often no CLI
+        // installed, so say so plainly — an agent told nothing would go on to
+        // reason about a wallet that is not there.
+        if (requiresPayerIdentity()) {
+          return {
+            cards: [],
+            note: 'The traveller pays from their own FluxA wallet, which this desk cannot read. Do not claim to know their balance; the payment card will tell them if a fare is not covered.',
+          };
+        }
         const cards = await listCards();
         // Balances and last four only. A PAN or CVV must never enter the
         // model's context — they are read server-side at payment and go

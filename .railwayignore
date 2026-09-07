@@ -1,0 +1,9 @@
+# Build inputs only. Everything below is large, tracked, and irrelevant to the
+# running app — the demo renders alone are tens of megabytes each.
+videos/
+demo/
+docs/
+flight402/
+web/.next/
+web/node_modules/
+node_modules/

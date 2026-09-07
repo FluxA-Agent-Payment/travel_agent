@@ -32,6 +32,20 @@ export async function GET(req: NextRequest) {
   const cardId = req.nextUrl.searchParams.get('cardId');
   const mandateId = req.nextUrl.searchParams.get('mandateId');
 
+  // Everything below this point reads the SERVER's wallet through the
+  // `fluxa-wallet` CLI. On a deployment where travellers pay for themselves
+  // there is no such wallet to report, and on most hosts there is no CLI
+  // installed either — so answer with an empty wallet rather than letting a
+  // missing binary surface as a broken panel on every page load.
+  if (requiresPayerIdentity()) {
+    return Response.json({
+      cards: [],
+      cardholder: null,
+      liveSettlement: settlesRealMoney(),
+      serverWallet: false,
+    });
+  }
+
   try {
     if (mandateId) {
       const mandate = await getMandateStatus(mandateId);

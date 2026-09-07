@@ -140,6 +140,20 @@ describe('getMandateViaApi', () => {
     expect(init.headers.Authorization).toBe('Bearer visitor-jwt');
   });
 
+  // create-intent answers { status: 'ok', mandateId, authorizationUrl }. That
+  // 'ok' is the call succeeding; reporting it as the mandate's own state is
+  // the bug that once made a signed mandate look unsigned forever.
+  it('does not mistake the envelope status for the mandate status', async () => {
+    fetchMock.mockReturnValue(
+      reply({ status: 'ok', mandateId: 'mand_new', authorizationUrl: 'https://x/approve' }),
+    );
+    const m = await getMandateViaApi({ jwt: 'j', mandateId: 'mand_new' });
+
+    expect(m.status).toBe('pending_signature');
+    expect(m.signedAt).toBeNull();
+    expect(m.approvalUrl).toBe('https://x/approve');
+  });
+
   // The endpoint has been seen to answer bare, wrapped, and as a list.
   it('unwraps whichever envelope FluxA uses', async () => {
     fetchMock.mockReturnValue(reply({ mandate: { mandateId: 'mand_2', status: 'signed' } }));

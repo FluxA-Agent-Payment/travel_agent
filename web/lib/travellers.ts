@@ -41,6 +41,34 @@ export interface TravellerSummary {
 
 const FILE = join(process.cwd(), '.data', 'travellers.json');
 
+/**
+ * Whether the saved-traveller book is usable at all.
+ *
+ * It is ONE list, shared by everybody who reaches this server. That is exactly
+ * right for a desk one person runs on their laptop, and a passport leak the
+ * moment more than one person can reach it: `listTravellers` would hand every
+ * visitor everyone else's details, and an id is the only thing needed to book
+ * on somebody's document.
+ *
+ * So it is closed whenever travellers are paying as themselves, which is the
+ * same signal that says this deployment has more than one user. Scoping the
+ * book per account is the real fix and needs an auth layer; until that exists,
+ * off is the only honest setting.
+ */
+function sharedBookAllowed(): boolean {
+  return process.env.NEXT_PUBLIC_FLUXA_BROWSER_WALLET !== 'true';
+}
+
+export class TravellerBookDisabled extends Error {
+  readonly code = 'traveller_book_disabled';
+  constructor() {
+    super(
+      'Saved travellers are disabled on this deployment — every visitor would share one address book. Enter passenger details for this booking instead.',
+    );
+    this.name = 'TravellerBookDisabled';
+  }
+}
+
 function readAll(): SavedTraveller[] {
   try {
     const raw = readFileSync(FILE, 'utf8');
@@ -70,11 +98,17 @@ export function summarise(t: SavedTraveller): TravellerSummary {
 }
 
 export function listTravellers(): TravellerSummary[] {
+  // Empty rather than throwing: "nobody is saved" is a state the UI and the
+  // agent already handle, and it degrades into simply asking for details.
+  if (!sharedBookAllowed()) return [];
   return readAll().map(summarise);
 }
 
 /** Full records, including document numbers. Server-side callers only. */
 export function expandTravellers(ids: string[]): SavedTraveller[] {
+  // This one throws. It returns passport numbers, so a caller that reaches it
+  // on a shared deployment must fail loudly rather than be handed anything.
+  if (!sharedBookAllowed()) throw new TravellerBookDisabled();
   const byId = new Map(readAll().map((t) => [t.id, t]));
   return ids.map((id) => {
     const found = byId.get(id);
@@ -91,6 +125,7 @@ export function expandTravellers(ids: string[]): SavedTraveller[] {
  * near-duplicates that are impossible to tell apart in a list.
  */
 export function saveTraveller(passenger: Passenger, contact: Contact): TravellerSummary {
+  if (!sharedBookAllowed()) throw new TravellerBookDisabled();
   const rows = readAll();
   const key = (p: Passenger) =>
     `${p.firstName.trim().toLowerCase()}|${p.lastName.trim().toLowerCase()}|${p.dateOfBirth}`;
@@ -111,6 +146,7 @@ export function saveTraveller(passenger: Passenger, contact: Contact): Traveller
 }
 
 export function deleteTraveller(id: string): boolean {
+  if (!sharedBookAllowed()) throw new TravellerBookDisabled();
   const rows = readAll();
   const next = rows.filter((t) => t.id !== id);
   if (next.length === rows.length) return false;

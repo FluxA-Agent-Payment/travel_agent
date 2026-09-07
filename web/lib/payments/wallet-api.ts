@@ -56,13 +56,29 @@ async function walletFetch(
   });
   const body = await res.json().catch(() => ({}));
 
-  if (res.status === 401 || res.status === 403) {
-    // Surfaced as its own code so the caller can ask the browser for a fresh
-    // JWT rather than reporting a payment failure. The token expiring is not
-    // the payment being refused.
+  // A brand-new agent can create a mandate but cannot read one until the
+  // person it belongs to has linked a wallet to it. FluxA says so precisely,
+  // and the distinction matters: this is a step the traveller has not finished
+  // yet, not a broken session. Conflating the two sends the browser off to
+  // refresh a perfectly good token, forever.
+  if (body?.code === 'agent_not_authorized') {
+    throw new FluxaError(
+      'This FluxA agent is not linked to a wallet yet — approve it in FluxA first',
+      'agent_not_authorized',
+    );
+  }
+  if (res.status === 401) {
+    // Its own code so the caller refreshes rather than reporting a payment
+    // failure. A token expiring is not a payment being refused.
     throw new FluxaError(
       'That FluxA session has expired — refresh it and try again',
       'jwt_expired',
+    );
+  }
+  if (res.status === 403) {
+    throw new FluxaError(
+      body?.message ?? 'FluxA refused that request',
+      'forbidden',
     );
   }
   if (!res.ok) {
@@ -72,6 +88,29 @@ async function walletFetch(
     );
   }
   return body;
+}
+
+/**
+ * Whether an agent has been adopted into somebody's wallet.
+ *
+ * There is no endpoint that answers this directly. Listing mandates is the
+ * call FluxA rejects with 403 while an agent is unlinked, so that rejection is
+ * the signal — the same way the wallet CLI decides it. Anything other than a
+ * clean 200 or a 403 is a real failure and is raised rather than reported as
+ * "not linked", which would send the traveller to relink a wallet that was
+ * never the problem.
+ */
+export async function isAgentLinked(jwt: string): Promise<boolean> {
+  if (!jwt) throw new FluxaError('No FluxA identity for this request', 'no_payer_jwt');
+  const res = await fetch(`${WALLET_API}/api/mandates`, {
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  if (res.ok) return true;
+  if (res.status === 403) return false;
+  throw new FluxaError(
+    `Could not check wallet linkage (${res.status})`,
+    'link_check_failed',
+  );
 }
 
 /** Mint a JWT from an agent's long-lived credentials. */
@@ -92,7 +131,12 @@ function toMandate(raw: any): Mandate {
   const m = raw?.mandate ?? (Array.isArray(raw?.mandates) ? raw.mandates[0] : raw);
   return {
     id: m?.id ?? m?.mandateId,
-    status: m?.status,
+    // `create-intent` answers { status: 'ok', mandateId, authorizationUrl } —
+    // that 'ok' is the CALL succeeding, not the mandate's own state, and
+    // carrying it through would report a brand-new unsigned mandate as though
+    // 'ok' meant something about it. A fresh mandate is awaiting signature;
+    // say that instead of repeating the envelope.
+    status: m?.status === 'ok' ? 'pending_signature' : m?.status,
     approvalUrl: m?.approvalUrl ?? m?.authorizationUrl ?? m?.signUrl ?? null,
     limitAmountFormatted: m?.limitAmountFormatted,
     remainingAmountFormatted: m?.remainingAmountFormatted,
