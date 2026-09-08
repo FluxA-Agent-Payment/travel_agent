@@ -85,3 +85,18 @@ CREATE TABLE IF NOT EXISTS settlements (
   settled_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS settlements_user_idx ON settlements(user_id);
+
+/*
+ * Who a booking belongs to.
+ *
+ * Kept apart from the booking itself, which the provider rebuilds from the
+ * airline and has no notion of accounts. An order with no row here belongs to
+ * nobody and is shown to nobody — so bookings made before this existed become
+ * invisible rather than public, which is the safe direction to fail.
+ */
+CREATE TABLE IF NOT EXISTS order_owners (
+  order_id    TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS order_owners_user_idx ON order_owners(user_id);

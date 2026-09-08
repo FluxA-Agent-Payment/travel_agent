@@ -3,6 +3,8 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { getBookingProvider } from '../booking';
 import { listCards } from '../payments/fluxa';
 import { requiresPayerIdentity } from '../payments/desk';
+import { currentUser } from '../auth';
+import { orderIdsFor, ownsOrder, scopingAvailable } from '../ownership';
 import { expandTravellers, listTravellers } from '../travellers';
 import { BookingError, isBookingError } from '../types';
 
@@ -300,7 +302,18 @@ export function buildTools(emit: Emit) {
       required: ['orderId'],
     },
     run: (input: any) =>
-      guard(emit, 'check_order', () => booking.getOrder(input.orderId).then(redact)),
+      guard(emit, 'check_order', async () => {
+        // The model can be told an order id by anyone — in a message, in a
+        // pasted itinerary. Ownership is checked here rather than trusted,
+        // and an order belonging to someone else is simply not found.
+        if (scopingAvailable()) {
+          const user = await currentUser();
+          if (!(await ownsOrder(input.orderId, user?.id ?? null))) {
+            throw new BookingError(`Order ${input.orderId} not found`, 'not_found');
+          }
+        }
+        return redact(await booking.getOrder(input.orderId));
+      }),
   });
 
   const listOrders = betaTool({
@@ -308,7 +321,15 @@ export function buildTools(emit: Emit) {
     description:
       'List the traveller\'s bookings, most recent first. Call when they ask about "my trips", "my bookings", or an order whose id they do not have to hand.',
     inputSchema: { type: 'object', properties: {} },
-    run: () => guard(emit, 'list_orders', () => booking.listOrders().then(redact)),
+    run: () =>
+      guard(emit, 'list_orders', async () => {
+        if (!scopingAvailable()) return redact(await booking.listOrders());
+        const user = await currentUser();
+        // Signed out means no bookings of one's own, not everyone's.
+        if (!user) return [];
+        const mine = await orderIdsFor(user.id);
+        return redact((await booking.listOrders()).filter((o) => mine.has(o.orderId)));
+      }),
   });
 
   const quoteRefund = betaTool({

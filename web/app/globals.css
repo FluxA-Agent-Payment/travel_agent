@@ -2095,3 +2095,75 @@ button:disabled {
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* ---------- phones ---------- */
+
+/* The 1000px rule above stacks the two panes. This is the narrower case,
+   where the problem is no longer layout but room: the masthead carries a
+   title, a tagline, two dropdowns and a badge, and the dropdowns are anchored
+   to their trigger's right edge — which on a narrow screen hangs them off the
+   left of the viewport. */
+@media (max-width: 640px) {
+  .shell {
+    padding: 0 12px;
+  }
+
+  .masthead {
+    padding: 14px 2px 12px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .masthead h1 {
+    font-size: 17px;
+  }
+
+  /* "search · price · book · manage" is a description of the product for
+     someone deciding whether to use it. On a phone, the person has already
+     decided, and it costs a line that the controls need. */
+  .masthead .sub {
+    display: none;
+  }
+
+  /* The backend badge is a developer's affordance, not a traveller's. */
+  .badge {
+    display: none;
+  }
+
+  /* Anchored popovers become sheets pinned to the viewport, so neither one
+     can run off an edge regardless of where its trigger sits. */
+  .wallet-pop {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    width: auto;
+    max-height: 72dvh;
+  }
+
+  .wallet-anchor {
+    position: static;
+  }
+
+  /* Give the conversation the majority of a small screen — it is where the
+     reasoning and the questions are — while leaving the results pane enough
+     to show a card without becoming a letterbox. */
+  .results-pane {
+    max-height: 52dvh;
+  }
+
+  .thread {
+    padding: 14px 2px 8px;
+  }
+
+  /* Comfortable to hit with a thumb. */
+  .wallet-toggle,
+  .paybar-main,
+  .paybar-caret {
+    min-height: 40px;
+  }
+
+  .account {
+    padding: 14px;
+  }
+}

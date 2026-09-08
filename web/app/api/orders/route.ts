@@ -13,6 +13,8 @@ import {
 import { chargeWithMandate, deskIdentity, requiresPayerIdentity } from '@/lib/payments/desk';
 import { findSettlement, recordSettlement, type Settlement } from '@/lib/payments/ledger';
 import { getMandateViaApi } from '@/lib/payments/wallet-api';
+import { currentUser } from '@/lib/auth';
+import { claimOrder, orderIdsFor, ownsOrder, scopingAvailable } from '@/lib/ownership';
 import { isBookingError, type Contact, type Passenger } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -190,13 +192,39 @@ export async function POST(req: NextRequest) {
         if (!body.draftId) {
           return Response.json({ error: 'draftId is required' }, { status: 400 });
         }
+        // Placing an order is the first act that produces something worth
+        // owning, so it is the first that needs an account. Searching,
+        // comparing and pricing stay open — an account is asked for at the
+        // point it starts to buy the person something, not before.
+        const owner = scopingAvailable() ? await currentUser() : null;
+        if (scopingAvailable() && !owner) {
+          return Response.json(
+            {
+              error: 'Sign in before booking, so this trip is yours and stays private to you.',
+              code: 'signin_required',
+            },
+            { status: 401 },
+          );
+        }
+
         const order = await booking.placeOrder(body.draftId);
+        // Claimed immediately. A booking that exists without an owner is one
+        // nobody can see or pay for, so the gap between the two must be as
+        // small as possible.
+        if (owner) await claimOrder(order.orderId, owner.id);
         return Response.json({ order });
       }
 
       case 'pay': {
         if (!body.orderId) {
           return Response.json({ error: 'orderId is required' }, { status: 400 });
+        }
+        // Paying for somebody else's booking is not a favour anyone asked for.
+        if (scopingAvailable()) {
+          const user = await currentUser();
+          if (!(await ownsOrder(body.orderId, user?.id ?? null))) {
+            return Response.json({ error: 'No such booking', code: 'not_found' }, { status: 404 });
+          }
         }
 
         // The deposit rail settles a fare no card can pay. The traveller still
@@ -282,6 +310,13 @@ export async function POST(req: NextRequest) {
             { status: 400 },
           );
         }
+        // Refunding is destructive and moves money. Same gate as paying.
+        if (scopingAvailable()) {
+          const user = await currentUser();
+          if (!(await ownsOrder(body.orderId, user?.id ?? null))) {
+            return Response.json({ error: 'No such booking', code: 'not_found' }, { status: 404 });
+          }
+        }
         const refund = await booking.submitRefund(body.orderId, body.refundOfferId);
         return Response.json({ refund });
       }
@@ -321,10 +356,35 @@ export async function GET(req: NextRequest) {
   const booking = getBookingProvider();
 
   try {
+    // Without a database there is nowhere to record who owns what, so such a
+    // deployment is a single-user desk by definition and keeps the old
+    // behaviour. Everywhere else, a booking is only ever shown to the account
+    // that made it.
+    if (!scopingAvailable()) {
+      return Response.json(
+        orderId
+          ? { order: await booking.getOrder(orderId) }
+          : { orders: await booking.listOrders() },
+      );
+    }
+
+    const user = await currentUser();
+
     if (orderId) {
+      // 404 rather than 403, and the same 404 whether the order is unknown,
+      // unowned, or somebody else's. A distinct "not yours" would confirm the
+      // order exists to whoever is guessing ids.
+      if (!(await ownsOrder(orderId, user?.id ?? null))) {
+        return Response.json({ error: 'No such booking', code: 'not_found' }, { status: 404 });
+      }
       return Response.json({ order: await booking.getOrder(orderId) });
     }
-    return Response.json({ orders: await booking.listOrders() });
+
+    if (!user) return Response.json({ orders: [] });
+
+    const mine = await orderIdsFor(user.id);
+    const orders = (await booking.listOrders()).filter((o) => mine.has(o.orderId));
+    return Response.json({ orders });
   } catch (err) {
     if (isBookingError(err)) {
       return Response.json({ error: err.message, code: err.code }, { status: 404 });
