@@ -2030,3 +2030,68 @@ button:disabled {
   margin-top: 2px;
   flex: none;
 }
+
+/* ---------- account ---------- */
+
+/* Deliberately borrows the booking form's field styling rather than defining
+   its own. Two different-looking text inputs in one product is a tell that
+   nobody decided how inputs look. */
+.account {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account label > span {
+  font-size: 14px;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.account input {
+  font: inherit;
+  font-size: 16.5px;
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-sunk);
+  color: var(--text);
+}
+
+.account input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.account .note {
+  margin: 0;
+}
+
+/* A button that reads as a link — for switching between signing in and
+   creating an account, which is a change of mode rather than an action. */
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}

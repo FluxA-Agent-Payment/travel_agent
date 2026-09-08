@@ -9,6 +9,8 @@ import { TripsPanel } from '@/components/shared/TripsPanel';
 import { StatusStrip } from '@/components/shared/StatusStrip';
 import { useOrders } from '@/hooks/useOrders';
 import { WalletPanel } from '@/components/shared/WalletPanel';
+import { AccountPanel } from '@/components/shared/AccountPanel';
+import { AuthProvider, useAuth } from '@/components/providers/AuthProvider';
 import { WalletProvider, balanceOf, useWallet } from '@/components/providers/WalletProvider';
 import { Markdown } from '@/components/shared/Markdown';
 
@@ -97,9 +99,11 @@ const SILENT_TOOLS = new Set([
 
 export default function ChatView({ backend }: { backend: string }) {
   return (
-    <WalletProvider>
-      <ChatShell backend={backend} />
-    </WalletProvider>
+    <AuthProvider>
+      <WalletProvider>
+        <ChatShell backend={backend} />
+      </WalletProvider>
+    </AuthProvider>
   );
 }
 
@@ -109,12 +113,15 @@ function ChatShell({ backend }: { backend: string }) {
   const wallet = useWallet();
   const [draft, setDraft] = useState('');
   const [walletOpen, setWalletOpen] = useState(false);
+  const auth = useAuth();
+  const [accountOpen, setAccountOpen] = useState(false);
   const [tab, setTab] = useState<'results' | 'trips'>('results');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const threadEndRef = useRef<HTMLDivElement>(null);
   const panelEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const walletRef = useRef<HTMLDivElement>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
 
   // The conversation and the artifacts it produces are two views of one
   // timeline: prose and progress stay in the thread, anything with a shape
@@ -186,6 +193,24 @@ function ChatShell({ backend }: { backend: string }) {
     panelEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [panelItems.length]);
 
+  // Same dismissal for the account menu. No equivalent of the wallet's
+  // issuing guard is needed — nothing in here spans more than one click.
+  useEffect(() => {
+    if (!accountOpen) return;
+    function onPointer(e: MouseEvent) {
+      if (!accountRef.current?.contains(e.target as Node)) setAccountOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setAccountOpen(false);
+    }
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [accountOpen]);
+
   // Dismiss the wallet on an outside click or Escape, the way a menu should.
   // It stays open while issuance is mid-flight, because that flow lives inside
   // it and a stray click must not drop a mandate the user is signing.
@@ -217,6 +242,30 @@ function ChatShell({ backend }: { backend: string }) {
       <header className="masthead">
         <h1>FluxA Flight Desk</h1>
         <span className="sub">search · price · book · manage</span>
+
+        {/* Sits beside the wallet rather than on its own screen. Signing in is
+            not a gate here — someone can search and compare without an
+            account, and is only asked for one when it starts to buy them
+            something. */}
+        <div className="wallet-anchor" ref={accountRef}>
+          <button
+            className={`wallet-toggle ${accountOpen ? 'open' : ''}`}
+            onClick={() => setAccountOpen((v) => !v)}
+            aria-expanded={accountOpen}
+            aria-haspopup="dialog"
+            title="Your Flight Desk account"
+          >
+            {auth.user ? auth.user.email.split('@')[0] : 'sign in'}
+            <span className={`chev ${accountOpen ? 'up' : ''}`} aria-hidden="true" />
+          </button>
+
+          {accountOpen ? (
+            <div className="wallet-pop" role="dialog" aria-label="Account">
+              <AccountPanel onDone={() => setAccountOpen(false)} />
+            </div>
+          ) : null}
+        </div>
+
         <div className="wallet-anchor" ref={walletRef}>
           <button
             className={`wallet-toggle ${walletOpen ? 'open' : ''}`}
