@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { phoneProblem, toE164 } from '@/lib/phone';
 import type { Contact, OrderDraft, Passenger } from '@/lib/types';
 
 /**
@@ -54,11 +55,11 @@ function validate(f: Fields): string | null {
     return `That date of birth gives an age of ${Math.floor(age)} — please check it.`;
   }
   if (!/^\S+@\S+\.\S+$/.test(f.email)) return 'A valid email address is required.';
-  // E.164. The provider normalises this for the airline, but a local-format
-  // number fails deep inside Atlas with an opaque message, so catch it here.
-  if (!/^\+[1-9]\d{6,14}$/.test(f.phone.replace(/[\s-]/g, ''))) {
-    return 'Phone must be international format with a country code, e.g. +6591234599.';
-  }
+  // The same check the server runs, so the two gates cannot disagree. The
+  // old version tested only the shape — a plus and some digits — which let
+  // through numbers the server then refused, after the traveller had moved on.
+  const phoneIssue = phoneProblem(f.phone);
+  if (phoneIssue) return phoneIssue;
   if (f.passportExpiry && f.passportExpiry < new Date().toISOString().slice(0, 10)) {
     return 'That passport expiry is in the past.';
   }
@@ -259,8 +260,17 @@ export function BookingForm({
           <span>Phone (with country code)</span>
           <input
             value={f.phone}
-            placeholder="+6591234599"
+            placeholder="+852 9876 5432"
             onChange={(e) => set('phone', e.target.value)}
+            // Tidy it once they have finished typing, not while they type —
+            // rewriting a field mid-keystroke fights the person using it. They
+            // can enter it however they say it aloud, and see the canonical
+            // form before anything is submitted.
+            onBlur={() => {
+              const canonical = toE164(f.phone);
+              if (canonical && canonical !== f.phone) set('phone', canonical);
+            }}
+            inputMode="tel"
             autoComplete="tel"
           />
         </label>

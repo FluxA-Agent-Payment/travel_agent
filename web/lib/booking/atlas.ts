@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
+import { phoneProblem } from '../phone';
+
 import { sharedMap, nextSeq } from '../store';
 
 import {
@@ -104,25 +106,32 @@ function atlasName(p: Passenger): string {
 const PAX_TYPE: Record<Passenger['type'], number> = { adult: 0, child: 1, infant: 2 };
 
 /**
- * Atlas wants the contact phone as `00<countryCode>-<nationalNumber>`
- * (e.g. `0065-91234599`) and rejects E.164 with status 410.
+ * Atlas wants the contact phone as `XXXX-<nationalNumber>` — the country
+ * calling code zero-padded to exactly FOUR digits — and rejects E.164 with
+ * status 410. Its own examples are `0001-87291810` and `0086-13928109091`.
  *
- * Splitting that with a regex does not work: country codes are 1-3 digits and
- * a greedy match turns `+6591234599` into country `6591`, national `234599`.
- * libphonenumber knows the real code table, so it does the split.
+ * Four, not "00" plus the code. That distinction is invisible for the codes
+ * most people test with (1, 44, 65, 86 all happen to come out right either
+ * way) and breaks every three-digit code — including +852, Hong Kong, which
+ * is where most of this desk's traffic departs from. It failed at the airline
+ * with a format complaint rather than anywhere useful.
+ *
+ * Splitting the code off with a regex does not work: codes are 1-3 digits and
+ * a greedy match turns `+6591234599` into country `6591`. libphonenumber
+ * knows the real table, so it does the split.
  */
-function atlasMobile(phone: string): string | null {
+export function atlasMobile(phone: string): string | null {
   const trimmed = String(phone ?? '').trim();
   if (!trimmed) return null;
-  if (/^00\d{1,4}-\d{4,15}$/.test(trimmed)) return trimmed;
+  // Already in Atlas's shape. Exactly four digits, so a wrongly padded number
+  // is not waved through by the very check meant to catch it.
+  if (/^\d{4}-\d{4,15}$/.test(trimmed)) return trimmed;
 
   const e164 = trimmed.startsWith('+') ? trimmed : `+${trimmed.replace(/^00/, '')}`;
   const parsed = parsePhoneNumberFromString(e164);
   if (!parsed || !parsed.isValid()) return null;
 
-  // Atlas pads the country code to at least two digits: +1 → 0001, +65 → 0065.
-  const cc = String(parsed.countryCallingCode).padStart(2, '0');
-  return `00${cc}-${parsed.nationalNumber}`;
+  return `${String(parsed.countryCallingCode).padStart(4, '0')}-${parsed.nationalNumber}`;
 }
 
 function mapSegments(raw: any[] | null | undefined): Segment[] {
@@ -464,11 +473,11 @@ export function createAtlasProvider(config: AtlasConfig): BookingProvider {
       // details can be corrected. This used to run in placeOrder — that is,
       // *after* the traveller had approved and committed — so a mistyped phone
       // surfaced at the one moment there was no way back to the field.
-      if (!atlasMobile(input.contact?.phone ?? '')) {
+      const phoneIssue = phoneProblem(input.contact?.phone);
+      if (phoneIssue) {
         throw new BookingError(
-          `The contact phone "${input.contact?.phone ?? ''}" is not usable. It must be ` +
-            'international format with a country code, e.g. +6591234567. Ask the traveller ' +
-            'which country the number is from rather than guessing a prefix.',
+          `${phoneIssue} Ask the traveller which country the number is from rather ` +
+            'than guessing a prefix.',
           'bad_phone',
         );
       }

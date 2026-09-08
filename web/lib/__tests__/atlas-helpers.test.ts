@@ -1,8 +1,14 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
-// Atlas internal helpers (fromAtlasDate, toAtlasDate, atlasName, atlasMobile)
-// are not exported, so we test their observable effects through the provider.
-// We also test the module-level factory and environment handling.
+import { atlasMobile } from '../booking/atlas';
+
+// Most Atlas internal helpers (fromAtlasDate, toAtlasDate, atlasName) are not
+// exported, so we test their observable effects through the provider, along
+// with the module-level factory and environment handling.
+//
+// atlasMobile IS exported and tested directly, at the bottom of this file. It
+// converts to a format the airline specifies exactly, and reaching it through
+// a whole booking is how it went untested until it failed in production.
 
 describe('createAtlasProviderFromEnv', () => {
   beforeEach(() => {
@@ -123,5 +129,67 @@ describe('Atlas production guards', () => {
     // the provider was created with production mode. The actual guard fires
     // inside completePayment when method is 'deposit'.
     expect(prod.name).toBe('atlas');
+  });
+});
+
+/**
+ * Phone conversion for Atlas.
+ *
+ * Untested until it broke in production. The header comment of this file has
+ * claimed to cover `atlasMobile` since it was written, but the function was
+ * not exported, so nothing here touched it — and the bug it hid only shows on
+ * three-digit country codes, which none of the obvious examples use.
+ */
+describe('atlasMobile', () => {
+  // The country code is padded to four digits TOTAL. For 1- and 2-digit codes
+  // that happens to equal "00" + the code, which is why the wrong rule looked
+  // right for so long.
+  it('pads one and two digit country codes to four', () => {
+    expect(atlasMobile('+14155552671')).toBe('0001-4155552671');
+    expect(atlasMobile('+8613928109091')).toBe('0086-13928109091');
+    expect(atlasMobile('+6591234599')).toBe('0065-91234599');
+    expect(atlasMobile('+447911123456')).toBe('0044-7911123456');
+  });
+
+  // The regression. +852 is Hong Kong, where most of this desk's bookings
+  // depart from, so this was not an edge case in practice.
+  it('keeps three digit country codes to four digits, not five', () => {
+    expect(atlasMobile('+85298765432')).toBe('0852-98765432');
+    expect(atlasMobile('+351912345678')).toBe('0351-912345678');
+    expect(atlasMobile('+35799123456')).toBe('0357-99123456');
+  });
+
+  it('always produces exactly four digits before the dash', () => {
+    for (const n of [
+      '+14155552671',
+      '+8613928109091',
+      '+6591234599',
+      '+85298765432',
+      '+351912345678',
+      '+447911123456',
+    ]) {
+      expect(atlasMobile(n)!.split('-')[0]).toHaveLength(4);
+    }
+  });
+
+  it('accepts a number already in Atlas format', () => {
+    expect(atlasMobile('0086-13928109091')).toBe('0086-13928109091');
+    expect(atlasMobile('  0852-98765432  ')).toBe('0852-98765432');
+  });
+
+  // A wrongly padded number must not be waved through by the passthrough
+  // check — that would defeat the point of validating at all.
+  it('does not pass through a five digit prefix unchanged', () => {
+    expect(atlasMobile('00852-98765432')).not.toBe('00852-98765432');
+  });
+
+  it('accepts 00-prefixed international form', () => {
+    expect(atlasMobile('008613928109091')).toBe('0086-13928109091');
+  });
+
+  it('rejects what it cannot convert, rather than guessing', () => {
+    for (const bad of ['', '   ', 'not a phone', '12345', '+999123']) {
+      expect(atlasMobile(bad)).toBeNull();
+    }
   });
 });
